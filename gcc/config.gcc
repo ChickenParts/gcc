@@ -419,6 +419,13 @@ fido-*-*)
 	extra_headers=math-68881.h
 	extra_options="${extra_options} m68k/m68k-tables.opt"
         ;;
+ia16-*-*)
+	cpu_type=ia16
+	c_target_objs="ia16-c.o"
+	cxx_target_objs="ia16-c.o"
+	extra_gcc_objs="driver-ia16.o"
+	extra_objs="ia16-builtins.o ia16-reorg.o ia16-no-ss-data.o"
+	;;
 i[34567]86-*-* | x86_64-*-*)
 	cpu_type=i386
 	c_target_objs="i386-c.o"
@@ -1967,6 +1974,14 @@ x86_64-*-darwin*)
 	with_cpu=${with_cpu:-core2}
 	tmake_file="${tmake_file} ${cpu_type}/t-darwin64-biarch t-slibgcc"
 	tm_file="${cpu_type}/darwin64-biarch.h ${tm_file} "
+	;;
+ia16-*-elf)
+	tm_file="elfos.h ${tm_file} ia16/elf.h newlib-stdint.h"
+	tmake_file="ia16/t-ia16"
+	;;
+ia16-*-elks)
+	tm_file="elfos.h ${tm_file} ia16/elks.h"
+	tmake_file="ia16/t-ia16"
 	;;
 i[34567]86-*-elfiamcu)
 	tm_file="${tm_file} i386/unix.h i386/att.h elfos.h newlib-stdint.h i386/iamcu.h"

@@ -1,0 +1,161 @@
+# 16.1 Target Makefile Fragments
+
+driver-ia16.o: $(srcdir)/config/ia16/driver-ia16.cc $(CONFIG_H) $(SYSTEM_H) \
+  $(TM_H) $(GTFILES_H)
+	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) $<
+
+# Build ia16-c.o.  Also take the opportunity to check for any previously
+# installed obsolete multilibs, which should really be cleaned away.
+#	-- tkchia
+#
+ia16-c.o: $(srcdir)/config/ia16/ia16-c.cc $(RTL_H) $(TREE_H) $(CONFIG_H) \
+  $(TM_H) $(GTFILES_H)
+	@if test \
+	     -e "$(prefix)"/ia16-elf/lib/i80286 \
+	  -o -e "$(prefix)"/lib/gcc/ia16-elf/$(BASEVER_c)/i80286 \
+	  -o -e "$(prefix)"/ia16-elf/include/c++/$(BASEVER_c)/ia16-elf/i80286 \
+	  -o -e "$(prefix)"/ia16-elf/lib/any_186 \
+	  -o -e "$(prefix)"/lib/gcc/ia16-elf/$(BASEVER_c)/any_186 \
+	  -o -e "$(prefix)"/ia16-elf/include/c++/$(BASEVER_c)/ia16-elf/any_186\
+	  -o -e "$(prefix)"/ia16-elf/lib/wide-types \
+	  -o -e "$(prefix)"/lib/gcc/ia16-elf/$(BASEVER_c)/wide-types \
+	  -o -e \
+	     "$(prefix)"/ia16-elf/include/c++/$(BASEVER_c)/ia16-elf/wide-types\
+	  -o -e "$(prefix)"/ia16-elf/lib/frame-pointer \
+	  -o -e "$(prefix)"/lib/gcc/ia16-elf/$(BASEVER_c)/frame-pointer \
+	  -o -e \
+	  "$(prefix)"/ia16-elf/include/c++/$(BASEVER_c)/ia16-elf/frame-pointer\
+	  -o -e "$(prefix)"/ia16-elf/lib/size \
+	  -o -e "$(prefix)"/lib/gcc/ia16-elf/$(BASEVER_c)/size \
+	  -o -e "$(prefix)"/ia16-elf/include/c++/$(BASEVER_c)/ia16-elf/size \
+	  -o -e "$(prefix)"/ia16-elf/lib/rtd/elkslibc \
+	  -o -e "$(prefix)"/ia16-elf/lib/regparmcall/elkslibc \
+	  -o -e "$(prefix)"/ia16-elf/lib/segelf \
+	  -o -e "$(prefix)"/lib/gcc/ia16-elf/$(BASEVER_c)/segelf \
+	  -o -e "$(prefix)"/ia16-elf/include/c++/$(BASEVER_c)/ia16-elf/segelf \
+	  -o -e "$(prefix)"/ia16-elf/lib/dosx/dx-mssl.ld \
+	  -o -e "$(prefix)"/ia16-elf/lib/elf2dosx \
+	  -o -e "$(prefix)"/ia16-elf/lib/pmode/regparmcall \
+	  -o -e "$(prefix)"/lib/gcc/ia16-elf/$(BASEVER_c)/pmode/regparmcall \
+	  -o -e "$(prefix)"/ia16-elf/include/c++/$(BASEVER_c)/ia16-elf/` \
+			   `pmode/regparmcall; \
+	then \
+	  exec >&2 2>/dev/null; \
+	  echo; \
+	  echo '*** multilib settings have changed, please rebuild! ***'; \
+	  echo 'Please clean up the installation directory, and rebuild'; \
+	  echo 'gcc-ia16 (and libstdc++, and newlib) from start.'; \
+	  echo 'To do this using build-ia16:'; \
+	  echo '  $$ cd ....../build-ia16'; \
+	  echo '  $$ git pull'; \
+	  echo '  $$ ./build.sh gcc1 newlib gcc2'; \
+	  echo 'Alternatively, manually remove the following directories:'; \
+	  find "$(prefix)"/ia16-elf/lib -name i80286 -ls; \
+	  find "$(prefix)"/lib/gcc/ia16-elf -name i80286 -ls; \
+	  find "$(prefix)"/ia16-elf/include -name i80286 -ls; \
+	  find "$(prefix)"/ia16-elf/lib -name any_186 -ls; \
+	  find "$(prefix)"/lib/gcc/ia16-elf -name any_186 -ls; \
+	  find "$(prefix)"/ia16-elf/include -name any_186 -ls; \
+	  find "$(prefix)"/ia16-elf/lib -name wide-types -ls; \
+	  find "$(prefix)"/lib/gcc/ia16-elf -name wide-types -ls; \
+	  find "$(prefix)"/ia16-elf/include -name wide-types -ls; \
+	  find "$(prefix)"/ia16-elf/lib -name frame-pointer -ls; \
+	  find "$(prefix)"/lib/gcc/ia16-elf -name frame-pointer -ls; \
+	  find "$(prefix)"/ia16-elf/include -name frame-pointer -ls; \
+	  find "$(prefix)"/ia16-elf/lib -name size -ls; \
+	  find "$(prefix)"/lib/gcc/ia16-elf -name size -ls; \
+	  find "$(prefix)"/ia16-elf/include -name size -ls; \
+	  find "$(prefix)"/ia16-elf/lib -name elkslibc -ls; \
+	  find "$(prefix)"/ia16-elf/lib -name segelf -ls; \
+	  find "$(prefix)"/ia16-elf/lib -name 'dx-ms[sl].ld' -ls; \
+	  find "$(prefix)"/ia16-elf/lib -name 'dx-mssl.ld' -ls; \
+	  find "$(prefix)"/ia16-elf/lib -name elf2dosx -ls; \
+	  find "$(prefix)"/lib/gcc/ia16-elf -name segelf -ls; \
+	  find "$(prefix)"/ia16-elf/include -name segelf -ls; \
+	  find "$(prefix)"/ia16-elf/lib -name pmode -ls; \
+	  find "$(prefix)"/lib/gcc/ia16-elf -name pmode -ls; \
+	  find "$(prefix)"/ia16-elf/include -name pmode -ls; \
+	  echo 'and arrange to rebuild GCC.'; \
+	  echo; \
+	  exit 1; \
+	fi
+	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) $<
+
+ia16-builtins.o: $(srcdir)/config/ia16/ia16-builtins.cc \
+  $(RTL_H) $(TREE_H) $(CONFIG_H) $(TM_H) $(GTFILES_H)
+	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) $<
+
+ia16-reorg.o: $(srcdir)/config/ia16/ia16-reorg.cc \
+  $(RTL_H) $(TREE_H) $(CONFIG_H) $(TM_H) $(GTFILES_H)
+	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) $<
+
+ia16-no-ss-data.o: $(srcdir)/config/ia16/ia16-no-ss-data.cc \
+  $(RTL_H) $(TREE_H) $(CONFIG_H) $(TM_H) $(GTFILES_H)
+	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) $<
+
+MULTILIB_OPTIONS=mprotected-mode mdosx/mr=elks ffreestanding \
+	mcmodel=medium mrtd/mregparmcall march=any_186
+MULTILIB_DIRNAMES=pmode dosx elkslibc freestanding medium rtd regparmcall \
+		  any_186
+MULTILIB_MATCHES=$(strip \
+	march?any_186=march?i80186 march?any_186=march?i80188 \
+	march?any_186=march?v20 march?any_186=march?v30 \
+	march?any_186=march?i80286)
+#
+# `-mdosx -mcmodel=medium' is not supported and is currently blocked by the
+# specs in newlib-ia16.
+#	-- tkchia 20220807
+#
+ia16_all_multilibs=$(strip \
+  $(filter-out - mdosx/mcmodel=medium%\
+		 mprotected-mode/mdosx/mcmodel=medium%\
+		 mdosx/ffreestanding/mcmodel=medium%\
+		 mprotected-mode/mdosx/ffreestanding/mcmodel=medium%\
+		 ffreestanding/mcmodel=medium%\
+		 mprotected-mode/ffreestanding/mcmodel=medium%,\
+    $(subst -/,,\
+      $(subst /-,,\
+	$(foreach pm,- mprotected-mode,\
+	  $(foreach os,- mdosx mr=elks,\
+	    $(foreach fh,- ffreestanding,\
+	      $(foreach mm,- mcmodel=medium,\
+		$(foreach cc,- mrtd mregparmcall,\
+		  $(foreach ar,- march=any_186, \
+		    $(pm)/$(os)/$(fh)/$(mm)/$(cc)/$(ar)))))))))))
+#
+# (1) Only build separate protected-mode libraries for freestanding
+#     environments.  Non-protected-mode libraries for freestanding
+#     environments are the same as non-protected-mode libraries for the
+#     default hosted environment (real mode MS-DOS).  Treat `-mdosx
+#     -ffreestanding' and `-mr=elks -ffreestanding' the same as `-mdosx` and
+#     `-mr=elks' respectively.
+# (2) Build 80186+ multilibs only for the `regparmcall' convention.
+# (3) DOS extender multilibs are always targeted at 286+.
+# (4) For now, do not build 186+-specific multilibs at all for -ffreestanding,
+#     -mr=elks, or -mcmodel=medium.
+#	-- tkchia 20220807
+#
+ia16_multilib_map=$(strip \
+  $(filter-out march=any_186 mprotected-mode ffreestanding,\
+    $(subst mrtd/march=any_186,mrtd,\
+      $(patsubst mdosx%/march=any_186,mdosx%,\
+	$(subst ffreestanding/march=any_186,ffreestanding,\
+	  $(subst mr=elks/march=any_186,mr=elks,\
+	    $(subst mcmodel=medium/march=any_186,mcmodel=medium,\
+	      $(subst /mregparmcall/march=any_186,/mregparmcall,\
+		$(patsubst mdosx/ffreestanding%,mdosx%,\
+		  $(patsubst mr=elks/ffreestanding%,mr=elks%,\
+		    $(patsubst mprotected-mode/m%,m%,\
+		      $(patsubst ffreestanding/%,%,\
+			$1))))))))))))
+MULTILIB_REQUIRED=$(strip \
+	$(foreach ml,$(ia16_all_multilibs),\
+	  $(filter $(call ia16_multilib_map,$(ml)),$(ml))))
+#
+# Some multilibs variants simply map to the default multilib, hence the $(if).
+#
+MULTILIB_REUSE=$(strip \
+  $(foreach ml,\
+    $(filter-out $(MULTILIB_REQUIRED),$(ia16_all_multilibs)),\
+      $(if $(call ia16_multilib_map,$(ml)),\
+	$(subst =,.,$(call ia16_multilib_map,$(ml)))=$(subst =,.,$(ml)))))

@@ -1,0 +1,284 @@
+march=any
+Target RejectNegative Var(target_arch,PROCESSOR_ANY) Init(PROCESSOR_ANY)
+Produce code that works on any CPU, with generic tuning options (default).
+
+march=any_186
+Target RejectNegative Var(target_arch,PROCESSOR_ANY_186)
+Use features available on both Intel 80186 and NEC V20 or better.
+
+march=i8086
+Target RejectNegative Var(target_arch,PROCESSOR_I8086)
+Use features of and optimize code for the Intel 8086.
+
+march=i8088
+Target RejectNegative Var(target_arch,PROCESSOR_I8088)
+Use features of and optimize code for the Intel 8088.
+
+march=v30
+Target RejectNegative Var(target_arch,PROCESSOR_NEC_V30)
+Use features of and optimize code for the NEC V30.
+
+march=v30mz
+Target RejectNegative Var(target_arch,PROCESSOR_NEC_V30MZ)
+Use features of and optimize code for the NEC V30MZ.
+
+march=v20
+Target RejectNegative Var(target_arch,PROCESSOR_NEC_V20)
+Use features of and optimize code for the NEC V20.
+
+march=i80186
+Target RejectNegative Var(target_arch,PROCESSOR_I80186)
+Use features of and optimize code for the Intel 80186.
+
+march=i186
+Target RejectNegative Alias(march=i80186)
+Use features of and optimize code for the Intel 80186.
+
+march=i80188
+Target RejectNegative Var(target_arch,PROCESSOR_I80188)
+Use features of and optimize code for the Intel 80188.
+
+march=i188
+Target RejectNegative Alias(march=i80188)
+Use features of and optimize code for the Intel 80188.
+
+march=i80286
+Target RejectNegative Var(target_arch,PROCESSOR_I80286)
+Use features of and optimize code for the Intel 80286.
+
+march=i286
+Target RejectNegative Alias(march=i80286)
+Use features of and optimize code for the Intel 80286.
+
+mtune=any
+Target RejectNegative Var(target_tune,PROCESSOR_ANY) Init(PROCESSOR_ANY)
+Optimize code for a generic IA-16 CPU.
+
+mtune=any_186
+Target RejectNegative Var(target_tune,PROCESSOR_ANY_186)
+Optimize code for a generic IA-16 CPU with Intel 80186 features.
+
+mtune=i8086
+Target RejectNegative Var(target_tune,PROCESSOR_I8086)
+Optimize code for the Intel 8086.
+
+mtune=i8088
+Target RejectNegative Var(target_tune,PROCESSOR_I8088)
+Optimize code for the Intel 8088.
+
+mtune=v30
+Target RejectNegative Var(target_tune,PROCESSOR_NEC_V30)
+Optimize code for the NEC V30.
+
+mtune=v30mz
+Target RejectNegative Var(target_tune,PROCESSOR_NEC_V30MZ)
+Optimize code for the NEC V30MZ.
+
+mtune=v20
+Target RejectNegative Var(target_tune,PROCESSOR_NEC_V20)
+Optimize code for the NEC V20.
+
+mtune=i80186
+Target RejectNegative Var(target_tune,PROCESSOR_I80186)
+Optimize code for the Intel 80186.
+
+mtune=i186
+Target RejectNegative Alias(mtune=i80186)
+Optimize code for the Intel 80186.
+
+mtune=i80188
+Target RejectNegative Var(target_tune,PROCESSOR_I80188)
+Optimize code for the Intel 80188.
+
+mtune=i188
+Target RejectNegative Alias(mtune=i80188)
+Optimize code for the Intel 80188.
+
+mtune=i80286
+Target RejectNegative Var(target_tune,PROCESSOR_I80286)
+Optimize code for the Intel 80286.
+
+mtune=i286
+Target RejectNegative Alias(mtune=i80286)
+Optimize code for the Intel 80286.
+
+mshort-jumps
+Target Mask(SHORT_JUMPS)
+Do (not - this is the default) use jump instructions which can only jump -128/+127 bytes.
+
+; This is now equivalent to -mcmodel=small (below) unless a memory model is
+; explicitly specified.
+mseparate-code-segment
+Target RejectNegative Undocumented
+
+mcmodel=tiny
+Target RejectNegative Var(target_cmodel,CMODEL_TINY) Init(CMODEL_TINY)
+Generate code for the tiny code model (default), with one combined data and text segment.
+
+; For the compiler back-end, -mcmodel=small in contrast to -mcmodel=tiny is
+; mainly just about having separate code and data address spaces.  Most of
+; the work for implementing the small model happens at the linking stage.
+;
+; With the help of elf.h, this option also enables -msegment-relocation-stuff.
+mcmodel=small
+Target RejectNegative Var(target_cmodel,CMODEL_SMALL)
+Generate code for the small code model, with one data and one text segment.
+
+; With the help of elf.h, this option also enables -msegment-relocation-stuff.
+mcmodel=medium
+Target RejectNegative Var(target_cmodel,CMODEL_MEDIUM)
+Generate code for the medium code model, with one data segment and multiple text segments.
+
+msegment-relocation-stuff
+Target RejectNegative Mask(SEG_RELOC_STUFF)
+Enable language features which use segment relocations.
+
+mno-segment-relocation-stuff
+Target RejectNegative InverseMask(SEG_RELOC_STUFF)
+Disable language features which use segment relocations.
+
+mcdecl
+Target RejectNegative Report Var(target_call_parm_cvt,CALL_PARM_CVT_CDECL) Init(CALL_PARM_CVT_CDECL) Undocumented
+
+mrtd
+Target RejectNegative Report Var(target_call_parm_cvt,CALL_PARM_CVT_STDCALL)
+Alternate calling convention (callee pops arguments).
+
+mstdcall
+Target RejectNegative Alias(mrtd) Undocumented
+
+mregparmcall
+Target RejectNegative Report Var(target_call_parm_cvt,CALL_PARM_CVT_REGPARMCALL)
+Alternate calling convention (some arguments in registers; callee pops rest).
+
+mno-callee-assume-ds-data-segment
+Target RejectNegative Report Mask(NO_ASSUME_DS_DATA)
+Alternate calling convention (callee cannot assume %ds points to program's data segment on entry).
+
+mcallee-assume-ds-data-segment
+Target RejectNegative InverseMask(NO_ASSUME_DS_DATA, ASSUME_DS_DATA) Undocumented
+
+; Older name.
+mcallee-assume-ds-ss
+Target Alias(mcallee-assume-ds-data-segment) Undocumented
+
+; Older name.
+mcallee-assume-ds-data-space
+Target Alias(mcallee-assume-ds-data-segment) Undocumented
+
+mno-callee-assume-ss-data-segment
+Target RejectNegative Report Mask(NO_ASSUME_SS_DATA)
+Alternate (experimental) calling convention (callee cannot assume %ss points to program's data segment on entry).
+
+mcallee-assume-ss-data-segment
+Target RejectNegative InverseMask(NO_ASSUME_SS_DATA, ASSUME_SS_DATA) Undocumented
+
+mfar-function-if-far-return-type
+Target RejectNegative
+Ignored.
+
+mprotected-mode
+Target Report Mask(PROTECTED_MODE)
+Try to produce code suitable for running in protected mode.
+
+mr=
+Target Joined Var(target_runtime) Report RejectNegative
+Generate executables for the given runtime environment.
+
+melks
+Target Alias(mr=, elks) Report RejectNegative
+Generate executables for ELKS OS, and link with elks-libc.
+
+melks-libc
+Target Alias(mr=, elks) Report RejectNegative Undocumented
+
+mmsdos
+Target Alias(mr=, msdos) Report RejectNegative
+Generate executables for MS-DOS (default).
+
+mmsdos-handle-v1
+Target Report RejectNegative
+Generate MS-DOS executables which fail gracefully on DOS v1.x.
+
+mhandle-non-i186
+Target RejectNegative
+Generate executables which check if they are running on an 80186-capable CPU.
+
+mhandle-non-i286
+Target RejectNegative
+Generate executables which check if they are running on an 80286-capable CPU.
+
+mtsr
+Target Report Mask(TSR)
+Add code to support terminate-and-stay-resident (TSR) programs (experimental).
+
+; With the help of elf.h, this also enables -mprotected-mode.
+mdosx
+Target Report Mask(DOSX)
+Generate MS-DOS executables which run under a DOS extender (experimental).
+
+mdpmi
+Target Alias(mdosx)
+Generate MS-DOS executables which run under a DOS extender (experimental).
+
+mdosx32
+Target Report Mask(DOSX32)
+Generate MS-DOS executables which run under a DOS extender; prefer 32-bit DPMI mode (experimental).
+
+msegelf
+Target Report Mask(ABI_SEGELF)
+Use H. Peter Anvin's proposed 16-bit segmented code ABI (experimental).
+
+mnewlib-nano-stdio
+Target Mask(NEWLIB_NANO_STDIO)
+Link with Newlib's limited formatted I/O routines (experimental).
+
+mno-newlib-autofloat-stdio
+Target RejectNegative Mask(NO_NEWLIB_AUTOFLOAT_STDIO)
+Do not automatically decide between floating-point and non-fp formatted I/O routines.
+
+mnewlib-autofloat-stdio
+Target RejectNegative InverseMask(NO_NEWLIB_AUTOFLOAT_STDIO, NEWLIB_AUTOFLOAT_STDIO)
+Automatically decide between floating-point and non-fp formatted I/O routines (default).
+
+; This is currently a no-op option.  It may come in useful if and when ELKS
+; supports more than one executable format.
+maout
+Target RejectNegative Undocumented
+
+maout-stack=
+Target RejectNegative Joined UInteger
+Set the size of the initial stack for ELKS OS executables.
+
+mstack-size=
+Target RejectNegative Joined UInteger Alias(maout-stack=)
+Set the size of the initial stack for ELKS OS executables.
+
+maout-heap=
+Target RejectNegative Joined UInteger
+Set the size of the heap for ELKS OS executables.
+
+maout-symtab
+Target RejectNegative
+Add symbol table to output file.
+
+maout-total=
+Target RejectNegative Joined UInteger Warn(%<-maout-total=%> is deprecated; use %<-maout-stack=%> and %<-maout-heap=%>)
+Deprecated.  Set the top of the data segment for ELKS executables.
+
+maout-chmem=
+Target RejectNegative Joined UInteger Warn(%<-maout-chmem=%> is deprecated; use %<-maout-stack=%> and %<-maout-heap=%>)
+Deprecated.  Set the size of non-static data for ELKS executables.
+
+masm=att
+Target RejectNegative Var(ia16_asm_dialect, ASM_ATT) Init(ASM_ATT)
+Use AT&T assembler dialect (default).
+
+masm=intel
+Target RejectNegative Var(ia16_asm_dialect, ASM_INTEL)
+Use Intel assembler dialect (experimental).
+
+; Skip post-processing steps (POST_LINK_SPEC) after running linker.  This is
+; mainly for debugging, and is not yet "officially" documented.
+mno-post-link
+Target RejectNegative Undocumented
