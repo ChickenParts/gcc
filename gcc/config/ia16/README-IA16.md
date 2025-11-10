@@ -693,3 +693,483 @@ Contributions should follow GCC coding standards. Major changes should be discus
 **Last Updated**: November 2025
 **Backend Version**: Ported from GCC 6.3.0 to GCC 15+
 **Status**: Ready for use, actively maintained
+
+---
+
+## Binutils Requirements
+
+⚠️ **IMPORTANT**: The GCC ia16 backend alone is **not sufficient** to build ia16 programs. You also need:
+
+1. **GNU Binutils with ia16 support** - Assembler, linker, and utilities
+2. **C library** (optional but recommended) - newlib or elks-libc
+
+### Why You Need Binutils
+
+GCC is only a compiler - it generates assembly code. To create executables, you need:
+
+| Tool | Purpose | ia16-Specific Features |
+|------|---------|----------------------|
+| **as** | Assembler | Converts .s files to .o object files |
+| **ld** | Linker | Links .o files into executables, handles relocations |
+| **objcopy** | Object converter | Converts ELF to binary, creates ROM images |
+| **objdump** | Disassembler | Debug and inspect ia16 binaries |
+| **ar** | Archiver | Create static libraries (.a files) |
+
+Without ia16-aware binutils, you'll get errors like:
+- "ia16-elf-as: command not found"
+- "ia16-elf-ld: unrecognized target format"
+- Linker errors with ia16-specific relocations
+
+## Building a Complete ia16 Toolchain
+
+### Option 1: Build Everything (Recommended)
+
+Use the automated build script from TK Chia:
+
+```bash
+# 1. Clone the build repository
+git clone https://github.com/tkchia/build-ia16.git
+cd build-ia16
+
+# 2. Install prerequisites
+sudo apt-get install build-essential texinfo bison flex \
+  libgmp-dev libmpfr-dev libmpc-dev zlib1g-dev
+
+# 3. Run the build script (this takes 1-2 hours)
+./build.sh gcc1 binutils newlib gcc2
+
+# This builds:
+# - binutils-ia16 (assembler, linker, utilities)
+# - gcc-ia16 (stage 1 bootstrap)
+# - newlib (C library)
+# - gcc-ia16 (stage 2 with full library support)
+
+# 4. Install to /usr/local or custom prefix
+./build.sh prefix=/opt/ia16 install
+```
+
+### Option 2: Build Binutils Separately
+
+If you want to build binutils manually:
+
+```bash
+# 1. Clone binutils-ia16
+git clone https://github.com/tkchia/binutils-ia16.git
+cd binutils-ia16
+
+# 2. Configure for ia16-elf target
+mkdir build-ia16
+cd build-ia16
+../configure \
+  --target=ia16-elf \
+  --prefix=/opt/ia16 \
+  --disable-werror \
+  --disable-nls
+
+# 3. Build
+make -j$(nproc)
+
+# 4. Install
+sudo make install
+
+# 5. Add to PATH
+export PATH=/opt/ia16/bin:$PATH
+```
+
+### Option 3: Use Pre-built Packages (Ubuntu/Debian)
+
+```bash
+# Add PPA repository
+sudo add-apt-repository ppa:tkchia/build-ia16
+sudo apt-get update
+
+# Install the complete toolchain
+sudo apt-get install gcc-ia16-elf
+```
+
+### Verifying Your Installation
+
+After installation, verify all tools are present:
+
+```bash
+# Check compiler
+ia16-elf-gcc --version
+
+# Check assembler
+ia16-elf-as --version
+
+# Check linker
+ia16-elf-ld --version
+
+# Check other utilities
+ia16-elf-objcopy --version
+ia16-elf-objdump --version
+ia16-elf-ar --version
+ia16-elf-nm --version
+ia16-elf-strip --version
+```
+
+All should respond with version information and show "ia16-elf" as the target.
+
+## What Binutils-ia16 Provides
+
+### Key Features
+
+1. **16-bit x86 Assembly Support**
+   - Full 8086/80186/80286 instruction set
+   - Segment register handling
+   - Far call/jump support
+
+2. **MS-DOS MZ Executable Format**
+   - Proper DOS EXE header generation
+   - Relocation table creation
+   - PSP (Program Segment Prefix) support
+
+3. **ELKS Object Format**
+   - a.out format for ELKS
+   - Kernel module support
+
+4. **ELF Extensions**
+   - 16-bit ELF relocations
+   - Segment-based addressing
+   - Far pointer relocations
+
+5. **Linker Scripts**
+   - DOS COM file layout (org 0x100)
+   - DOS EXE file layout
+   - ROM image layouts
+   - Custom memory maps
+
+## Linker Details
+
+### Default Linker Scripts
+
+The ia16 linker includes several built-in scripts:
+
+```bash
+# View available scripts
+ia16-elf-ld --verbose
+
+# Common scripts:
+# - Default ELF layout (ia16-elf)
+# - DOS COM layout (tiny model)
+# - DOS EXE layout (small/medium model)
+# - ELKS a.out layout
+```
+
+### Creating DOS COM Files with Linker
+
+```bash
+# Method 1: Using output format
+ia16-elf-gcc -mcmodel=tiny hello.c -o hello.elf
+ia16-elf-objcopy -O binary hello.elf hello.com
+
+# Method 2: Direct binary output
+ia16-elf-gcc -mcmodel=tiny \
+  -Wl,--oformat=binary \
+  -Wl,-Ttext=0x100 \
+  -o hello.com hello.c
+```
+
+### Creating DOS EXE Files
+
+The linker automatically creates proper MZ headers:
+
+```bash
+# Small model EXE
+ia16-elf-gcc -mcmodel=small -o hello.exe hello.c
+
+# The linker adds:
+# - MZ signature (0x5A4D)
+# - Relocation table
+# - Header size calculation
+# - Entry point setup
+```
+
+### Custom Linker Scripts
+
+For special memory layouts (ROMs, embedded systems):
+
+```ld
+/* custom.ld - Custom linker script */
+OUTPUT_FORMAT("binary")
+ENTRY(_start)
+
+MEMORY {
+    ROM (rx)  : ORIGIN = 0xF000, LENGTH = 4K
+    RAM (rwx) : ORIGIN = 0x0000, LENGTH = 64K
+}
+
+SECTIONS {
+    .text : {
+        *(.text)
+    } > ROM
+
+    .data : {
+        *(.data)
+    } > RAM
+
+    .bss : {
+        *(.bss)
+    } > RAM
+}
+```
+
+```bash
+# Use custom script
+ia16-elf-gcc -T custom.ld -o firmware.bin firmware.c
+```
+
+## Assembler Details
+
+### Inline Assembly Syntax
+
+The ia16 assembler supports standard AT&T and Intel syntax:
+
+```c
+// AT&T syntax (default in GCC)
+__asm__ volatile(
+    "movw $0x1234, %ax\n"
+    "movw %ax, %ds\n"
+    ::: "ax"
+);
+
+// Intel syntax
+__asm__ volatile(
+    ".intel_syntax noprefix\n"
+    "mov ax, 0x1234\n"
+    "mov ds, ax\n"
+    ".att_syntax prefix\n"
+    ::: "ax"
+);
+```
+
+### Pure Assembly Files
+
+```asm
+# hello.s - Pure assembly hello world
+.code16
+.section .text
+.global _start
+
+_start:
+    mov $0x09, %ah          # DOS print string
+    lea message, %dx
+    int $0x21               # Call DOS
+
+    mov $0x4C, %ah          # DOS exit
+    int $0x21
+
+message:
+    .ascii "Hello from assembly!$"
+```
+
+```bash
+# Assemble and link
+ia16-elf-as -o hello.o hello.s
+ia16-elf-ld -o hello.com hello.o \
+  --oformat=binary \
+  -Ttext=0x100
+```
+
+## Object Format Conversions
+
+### ELF to Binary (for COM/ROM)
+
+```bash
+# Compile to ELF first
+ia16-elf-gcc -mcmodel=tiny -o program.elf program.c
+
+# Convert to raw binary
+ia16-elf-objcopy -O binary program.elf program.com
+
+# Strip specific sections
+ia16-elf-objcopy -O binary \
+  -j .text -j .data -j .rodata \
+  program.elf program.bin
+```
+
+### Creating ROM Images
+
+```bash
+# Create ROM with specific size
+ia16-elf-objcopy -O binary program.elf program.rom
+
+# Pad to exact size (e.g., 8KB)
+truncate -s 8192 program.rom
+
+# Verify size
+ls -lh program.rom
+```
+
+### Extracting Sections
+
+```bash
+# Disassemble
+ia16-elf-objdump -d program.o
+
+# Show all sections
+ia16-elf-objdump -h program.o
+
+# Show symbols
+ia16-elf-nm program.o
+
+# Show relocations
+ia16-elf-objdump -r program.o
+```
+
+## Relocation Types
+
+The ia16 binutils support special relocations:
+
+| Relocation | Description | Usage |
+|------------|-------------|-------|
+| R_386_16 | 16-bit absolute | Near pointers |
+| R_386_PC16 | 16-bit PC-relative | Near calls/jumps |
+| R_386_SEG16 | 16-bit segment | Far pointers (segment part) |
+| R_386_PC32 | 32-bit PC-relative | Far calls (segment:offset) |
+
+These are essential for:
+- Far function calls
+- Segment register loads
+- Inter-segment jumps
+- Position-independent code
+
+## Building Without C Library
+
+For bare-metal or BIOS code:
+
+```bash
+# Minimal startup code
+cat > crt0.s << 'ASM'
+.code16
+.section .text
+.global _start
+
+_start:
+    # Initialize stack
+    mov $0x9000, %ax
+    mov %ax, %ss
+    mov $0xFFFE, %sp
+
+    # Initialize data segment
+    mov $0x1000, %ax
+    mov %ax, %ds
+
+    # Call main
+    call main
+
+    # Exit (varies by platform)
+    jmp .
+ASM
+
+# Compile without standard libraries
+ia16-elf-as -o crt0.o crt0.s
+ia16-elf-gcc -ffreestanding -nostdlib \
+  -o firmware.elf crt0.o main.c
+ia16-elf-objcopy -O binary firmware.elf firmware.bin
+```
+
+## Library Creation
+
+### Static Libraries
+
+```bash
+# Compile library sources
+ia16-elf-gcc -c lib1.c -o lib1.o
+ia16-elf-gcc -c lib2.c -o lib2.o
+
+# Create archive
+ia16-elf-ar rcs libmylib.a lib1.o lib2.o
+
+# Use in linking
+ia16-elf-gcc -o program.exe main.c -L. -lmylib
+```
+
+### Shared Libraries (Not Supported)
+
+⚠️ Shared libraries (.so) are **not supported** in ia16 targets:
+- No dynamic linker in DOS/ELKS
+- 16-bit segmented memory model limitations
+- Use static linking only
+
+## Troubleshooting Linker Issues
+
+### "undefined reference to _start"
+
+```bash
+# Solution: Provide entry point or use -nostartfiles
+ia16-elf-gcc -nostartfiles -e main -o program.com program.c
+```
+
+### "section .text VMA overlaps .data"
+
+```bash
+# Solution: Adjust memory layout with linker script
+# or change code model
+ia16-elf-gcc -mcmodel=small -o program.exe program.c
+```
+
+### "relocation truncated to fit"
+
+```bash
+# Solution: Value too large for 16-bit offset
+# Use far pointers or smaller memory model
+ia16-elf-gcc -mcmodel=medium -o program.exe program.c
+```
+
+### "can't read relocation record"
+
+```bash
+# Solution: Incompatible object files (check bitness)
+file *.o  # Should show "ia16" or "80386"
+# Rebuild all objects with same toolchain
+```
+
+## Complete Build Example
+
+Putting it all together - building a multi-file DOS program:
+
+```bash
+# Project structure:
+# main.c
+# utils.c
+# utils.h
+# Makefile
+
+# Makefile
+CC = ia16-elf-gcc
+CFLAGS = -mcmodel=small -Os -Wall
+LDFLAGS = 
+
+OBJS = main.o utils.o
+
+program.exe: $(OBJS)
+	$(CC) $(LDFLAGS) -o $@ $(OBJS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $<
+
+clean:
+	rm -f *.o program.exe
+
+.PHONY: clean
+```
+
+## Resources
+
+- **Binutils Source**: https://github.com/tkchia/binutils-ia16
+- **Build Scripts**: https://github.com/tkchia/build-ia16
+- **PPA Packages**: https://launchpad.net/~tkchia/+archive/ubuntu/build-ia16
+- **Binutils Manual**: https://sourceware.org/binutils/docs/
+
+## Summary
+
+✅ **You must build/install binutils-ia16 before using GCC**
+✅ **Use the build-ia16 automated script for easiest setup**
+✅ **All standard binutils tools are supported**
+✅ **Special relocations handle far pointers and segments**
+✅ **Multiple output formats supported (ELF, binary, MZ)**
+
+The ia16 GCC backend and binutils work together to provide a complete toolchain for 16-bit x86 development.
+
