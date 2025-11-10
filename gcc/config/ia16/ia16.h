@@ -71,9 +71,9 @@
 #define       SHORT_TYPE_SIZE 16
 #define        LONG_TYPE_SIZE 32
 #define   LONG_LONG_TYPE_SIZE 64
-#define       FLOAT_TYPE_SIZE 32
-#define      DOUBLE_TYPE_SIZE 64
-#define LONG_DOUBLE_TYPE_SIZE 64
+/* FLOAT_TYPE_SIZE, DOUBLE_TYPE_SIZE, and LONG_DOUBLE_TYPE_SIZE are
+   poisoned in modern GCC and should not be defined here. The sizes
+   are determined by the target hooks and type system. */
 
 #define DEFAULT_SIGNED_CHAR		1
 #define SIZE_TYPE			"unsigned int"
@@ -124,11 +124,8 @@
 /* FIXME: Not documented: CCmode is 32 bits.  */
 /* Must not return 0 or subreg_get_info() may divide by zero.  */
 /* FIXME: Handling of XFmode needs to use GET_MODE_PRECISION(). */
-/* Replaced by target hook: #if 0 /* Replaced by target hook */
-/* Replaced by target hook: #define HARD_REGNO_NREGS(REGNO, MODE) \ */
-#if 0 /* Replaced by target hook */
-#endif
-  (MAX (ia16_hard_regno_nregs[GET_MODE_SIZE(MODE)][REGNO], 1))
+/* HARD_REGNO_NREGS has been replaced by TARGET_HARD_REGNO_NREGS target hook.
+   See ia16_hard_regno_nregs() in ia16.cc */
 
 /* Deprecated: /* There are more cases than those caught here, but HARD_REGNO_MODE_OK()
 /* Deprecated:    forbids them. Catch multireg values that straddle the boundary between
@@ -177,8 +174,8 @@
 /* Replaced by target hook:  *    This will fail for registers in class UP_QI_REGS.
 /* Replaced by target hook:  * Used in: rtlanal.c, combine.c, regclass.c and local-alloc.c. */
  */
-#define MODES_TIEABLE_P(MODE1, MODE2)	\
-	(GET_MODE_SIZE(MODE2) > 1 && GET_MODE_SIZE(MODE1) > 1)
+/* MODES_TIEABLE_P has been replaced by TARGET_MODES_TIEABLE_P target hook.
+   See ia16_modes_tieable_p() in ia16.cc */
 
 /* Handling Leaf Functions
  *
@@ -345,7 +342,7 @@ enum reg_class {	/*	 17 16 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0 */
 #define FRAME_GROWS_DOWNWARD 1
 #define FUNCTION_ARGS_GROW_DOWNWARD(funtype) \
 	ia16_function_args_grow_downward (funtype)
-#define STARTING_FRAME_OFFSET 0
+/* STARTING_FRAME_OFFSET is poisoned in modern GCC. The default of 0 is fine. */
 #define FIRST_PARM_OFFSET(fundecl) 0
 
 extern int ia16_function_args_grow_downward (const_tree funtype);
@@ -582,9 +579,8 @@ extern const char * const ia16_register_prefix[],
 
 /* Controlling Debugging Information Format  */
 /* Macros Affecting All Debugging Formats  */
-#undef PREFERRED_DEBUGGING_TYPE
+/* Use DWARF debugging by default (modern GCC standard) */
 /* Macros for SDB and DWARF Output  */
-#undef DWARF2_DEBUGGING_INFO
 
 #define REGISTER_TARGET_PRAGMAS() ia16_register_pragmas ()
 
@@ -614,11 +610,12 @@ extern const char * const ia16_register_prefix[],
 /* #define MOVE_MAX 		(UNITS_PER_WORD / (TARGET_TUNE_8BIT ? 2 : 1)) */
 #define	MOVE_MAX			UNITS_PER_WORD
 #define MAX_MOVE_MAX			UNITS_PER_WORD
-#define TRULY_NOOP_TRUNCATION(outprec, inprec) 1
+/* TRULY_NOOP_TRUNCATION is poisoned in modern GCC.
+   Use TARGET_TRULY_NOOP_TRUNCATION hook if needed. */
 #define STORE_FLAG_VALUE		(-1)
 #define Pmode				HImode
 #define FUNCTION_MODE			QImode
-#define NO_IMPLICIT_EXTERN_C
+/* NO_IMPLICIT_EXTERN_C is poisoned in modern GCC. */
 
 /* Index codes for machine-specific built-in functions.  */
 enum ia16_builtin
@@ -721,8 +718,8 @@ enum asm_dialect
 /* The linker will take care of this.  */
 #define CTOR_LISTS_DEFINED_EXTERNALLY 1
 
-/* No need to support Java.  */
-#define TARGET_USE_JCR_SECTION 0
+/* TARGET_USE_JCR_SECTION is poisoned in modern GCC.
+   Java support is no longer relevant in modern GCC. */
 
 /* Avoid having register_tm_clones and unregister_tm_clones in crtstuff.  */
 #define USE_TM_CLONE_REGISTRY 0
