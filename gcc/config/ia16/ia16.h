@@ -127,12 +127,15 @@
 /* HARD_REGNO_NREGS has been replaced by TARGET_HARD_REGNO_NREGS target hook.
    See ia16_hard_regno_nregs() in ia16.cc */
 
-/* Deprecated: /* There are more cases than those caught here, but HARD_REGNO_MODE_OK()
-/* Deprecated:    forbids them. Catch multireg values that straddle the boundary between
-/* Deprecated:    8-bit and 16-bit registers. */ */
+/* Deprecated - HARD_REGNO_NREGS_HAS_PADDING:
+   There are more cases than those caught here, but HARD_REGNO_MODE_OK()
+   forbids them. Catch multireg values that straddle the boundary between
+   8-bit and 16-bit registers. */
 #define HARD_REGNO_NREGS_HAS_PADDING(REGNO, MODE) \
-/* Deprecated: 	((REGNO) < FIRST_NOQI_REG && \
-/* Deprecated: 	 (REGNO) + GET_MODE_SIZE(MODE) > FIRST_NOQI_REG) */
+	0
+/* Deprecated implementation was:
+   ((REGNO) < FIRST_NOQI_REG &&
+    (REGNO) + GET_MODE_SIZE(MODE) > FIRST_NOQI_REG) */
 
 #define HARD_REGNO_NREGS_WITH_PADDING(REGNO, MODE) \
 	(GET_MODE_SIZE(MODE))
@@ -140,25 +143,29 @@
 #define REGMODE_NATURAL_SIZE(MODE)	\
 	(GET_MODE_SIZE(MODE) == 1 || GET_MODE_CLASS(MODE) == MODE_CC ? \
 	 1 : UNITS_PER_WORD)
-/* Replaced by target hook: 
-/* Replaced by target hook: /* Complex modes must not cross the boundary between 8-bit and 16-bit
-/* Replaced by target hook:    registers because subreg_get_info() will fail in that case.  */
-/* Replaced by target hook: #define HARD_REGNO_MODE_OK(REGNO, MODE) \
-/* Replaced by target hook:   (GET_MODE_CLASS(MODE) == MODE_CC ? (REGNO) == CC_REG :		\
-/* Replaced by target hook:    (REGNO) == CC_REG ? GET_MODE_CLASS(MODE) == MODE_CC :		\
-/* Replaced by target hook:    GET_MODE_SIZE(MODE) > 16 ? 0 :					\
-/* Replaced by target hook:    COMPLEX_MODE_P(MODE) &&						\
-/* Replaced by target hook:      HARD_REGNO_NREGS_HAS_PADDING((REGNO), (MODE)) ? 0 :		\ */
-   ia16_hard_regno_nregs[GET_MODE_SIZE(MODE)][REGNO] &&			\
-     (! TARGET_PROTECTED_MODE || (MODE) == PHImode			\
-      || ((REGNO) != DS_REG && (REGNO) != ES_REG)))
+/* HARD_REGNO_MODE_OK has been replaced by TARGET_HARD_REGNO_MODE_OK target hook.
+   See ia16_hard_regno_mode_ok() in ia16.cc
+
+   Complex modes must not cross the boundary between 8-bit and 16-bit
+   registers because subreg_get_info() will fail in that case.
+
+   Deprecated implementation was:
+   #define HARD_REGNO_MODE_OK(REGNO, MODE)
+     (GET_MODE_CLASS(MODE) == MODE_CC ? (REGNO) == CC_REG :
+      (REGNO) == CC_REG ? GET_MODE_CLASS(MODE) == MODE_CC :
+      GET_MODE_SIZE(MODE) > 16 ? 0 :
+      COMPLEX_MODE_P(MODE) &&
+        HARD_REGNO_NREGS_HAS_PADDING((REGNO), (MODE)) ? 0 :
+      ia16_hard_regno_nregs[GET_MODE_SIZE(MODE)][REGNO] &&
+       (! TARGET_PROTECTED_MODE || (MODE) == PHImode
+        || ((REGNO) != DS_REG && (REGNO) != ES_REG))) */
 
 /* For some reason, allowing registers other than %ds to be renamed to %ds
    during the rnreg pass (with e.g. -funroll-loops) leads to incorrect code
    around %ds <- %ss operations, so disable that.
-/* Deprecated: 
-/* Deprecated:    And, rnreg has this weird idea to rename the segment register in a
-/* Deprecated:    segment override to a non-segment register (argh!).  Disable that too.  */ */
+
+   Deprecated note: rnreg has this weird idea to rename the segment register
+   in a segment override to a non-segment register (argh!). Disable that too. */
 #define HARD_REGNO_RENAME_OK(FROM, TO) \
 	(((FROM) != DS_REG && (FROM) != ES_REG && (TO) != DS_REG) \
 	 || ((FROM) == DS_REG && (TO) == ES_REG))
@@ -171,8 +178,8 @@
  * 1) Access of a 16-bit value in MODE1 as an 8-bit value MODE2.
  *    This will fail for registers in class HI_REGS.
  * 2) Access of an 8-bit value in MODE1 as an 16-bit value in MODE2.
-/* Replaced by target hook:  *    This will fail for registers in class UP_QI_REGS.
-/* Replaced by target hook:  * Used in: rtlanal.c, combine.c, regclass.c and local-alloc.c. */
+ *    This will fail for registers in class UP_QI_REGS.
+ * Used in: rtlanal.c, combine.c, regclass.c and local-alloc.c.
  */
 /* MODES_TIEABLE_P has been replaced by TARGET_MODES_TIEABLE_P target hook.
    See ia16_modes_tieable_p() in ia16.cc */
