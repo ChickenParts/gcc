@@ -187,7 +187,7 @@ ia16_preferred_reload_class (rtx x ATTRIBUTE_UNUSED, reg_class_t rclass)
  * intermediate register of class GENERAL_REGS.  */
 static reg_class_t
 ia16_secondary_reload (bool in_p, rtx x, reg_class_t reload_class,
-		       enum machine_mode reload_mode ATTRIBUTE_UNUSED,
+		       machine_mode reload_mode ATTRIBUTE_UNUSED,
 		       secondary_reload_info *sri ATTRIBUTE_UNUSED)
 {
   if (in_p
@@ -1347,7 +1347,7 @@ extern tree ia16_gimplify_va_arg_expr (tree, tree, gimple_seq *, gimple_seq *);
 #undef  TARGET_VECTOR_MODE_SUPPORTED_P
 #define TARGET_VECTOR_MODE_SUPPORTED_P ia16_vector_mode_supported_p
 static bool
-ia16_vector_mode_supported_p (enum machine_mode mode)
+ia16_vector_mode_supported_p (machine_mode mode)
 {
   return (mode == V2QImode);
 }
@@ -1926,7 +1926,7 @@ ia16_function_attribute_inlinable_p (const_tree fndecl)
 #undef  TARGET_ADDR_SPACE_ADDRESS_MODE
 #define TARGET_ADDR_SPACE_ADDRESS_MODE ia16_as_address_mode
 
-static enum machine_mode
+static machine_mode
 ia16_as_address_mode (addr_space_t addrspace)
 {
   switch (addrspace)
@@ -2514,7 +2514,7 @@ ia16_as_convert (rtx op, tree from_type, tree to_type)
 /* Return the "smallest" usable comparison mode for the given comparison
  * operator OP and operands X and Y.  BRANCH is true if we are optimizing for
  * a branch instruction.  */
-enum machine_mode
+machine_mode
 ia16_select_cc_mode (enum rtx_code op, rtx x, rtx y,
 		     bool branch ATTRIBUTE_UNUSED)
 {
@@ -2567,7 +2567,7 @@ ia16_select_cc_mode (enum rtx_code op, rtx x, rtx y,
 rtx
 ia16_gen_compare_reg (enum rtx_code op, rtx x, rtx y, bool branch)
 {
-  enum machine_mode mode = ia16_select_cc_mode (op, x, y, branch);
+  machine_mode mode = ia16_select_cc_mode (op, x, y, branch);
   rtx cc_reg = gen_rtx_REG (mode, CC_REG);
 
   emit_insn (gen_rtx_SET (cc_reg, gen_rtx_COMPARE (mode, x, y)));
@@ -2604,8 +2604,8 @@ ia16_fixed_condition_code_regs (unsigned int *reg1, unsigned int *reg2)
 #define TARGET_CC_MODES_COMPATIBLE ia16_cc_modes_compatible
 
 /* TODO: Convert this into a table.  */
-enum machine_mode
-ia16_cc_modes_compatible (enum machine_mode mode1, enum machine_mode mode2)
+machine_mode
+ia16_cc_modes_compatible (machine_mode mode1, machine_mode mode2)
 {
   switch (mode1)
     {
@@ -2873,7 +2873,7 @@ extern struct processor_costs ia16_size_costs;
 /* Return the cost of a constant X in mode MODE in an OUTER_CODE rtx.  */
 /* TODO: Accurate costs of vector constants.  */
 static int
-ia16_constant_cost (rtx x, enum machine_mode mode, int outer_code)
+ia16_constant_cost (rtx x, machine_mode mode, int outer_code)
 {
   HOST_WIDE_INT n;
 
@@ -3903,7 +3903,7 @@ ia16_rtx_costs (rtx x, machine_mode mode, int outer_code_i,
 	         == GET_MODE_SIZE (mode))
 	    {
 	      int is_mulwiden = 0;
-	      enum machine_mode inner_mode = GET_MODE (op0);
+	      machine_mode inner_mode = GET_MODE (op0);
 
 	      if (GET_CODE (op0) == GET_CODE (op1))
 		is_mulwiden = 1, op1 = XEXP (op1, 0);
@@ -4792,7 +4792,7 @@ static void ia16_print_operand_address_internal (FILE *, rtx, addr_space_t);
 static void
 ia16_print_operand (FILE *file, rtx e, int code)
 {
-  enum machine_mode mode;
+  machine_mode mode;
   unsigned int regno;
   rtx x;
 
@@ -4961,7 +4961,7 @@ ia16_parse_address_strict (rtx x, rtx *p_rb, rtx *p_ri, rtx *p_c, rtx *p_rs,
 {
 	rtx tmp;
 	rtx rb, ri, c, rs;
-	enum machine_mode mode ATTRIBUTE_UNUSED;
+	machine_mode mode ATTRIBUTE_UNUSED;
 
 	if (!ia16_parse_address (x, &rb, &ri, &c, &rs, as))
 		return (0 == 1);
@@ -5350,7 +5350,7 @@ ia16_parse_address (rtx e, rtx *p_r1, rtx *p_r2, rtx *p_c, rtx *p_r9,
 #define TARGET_SHIFT_TRUNCATION_MASK	ia16_shift_truncation_mask
 
 static unsigned HOST_WIDE_INT
-ia16_shift_truncation_mask (enum machine_mode mode)
+ia16_shift_truncation_mask (machine_mode mode)
 {
   return (TARGET_SHIFT_MASKED && (mode == HImode || mode == QImode) ? 31 : 0);
 }
@@ -5431,6 +5431,71 @@ extern tree ia16_fold_builtin (tree fndecl, int n_args, tree *args,
 
 /* In ia16-no-ss-data.c .  */
 extern void ia16_set_current_function (tree);
+
+/* Target hooks to replace deprecated macros.  */
+
+static unsigned int
+ia16_hard_regno_nregs (unsigned int regno, machine_mode mode)
+{
+  return MAX (ia16_hard_regno_nregs[GET_MODE_SIZE(mode)][regno], 1);
+}
+
+#undef TARGET_HARD_REGNO_NREGS
+#define TARGET_HARD_REGNO_NREGS ia16_hard_regno_nregs
+
+static bool
+ia16_hard_regno_mode_ok (unsigned int regno, machine_mode mode)
+{
+  return (GET_MODE_CLASS(mode) == MODE_CC ? (regno) == CC_REG :
+          (regno) == CC_REG ? GET_MODE_CLASS(mode) == MODE_CC :
+          GET_MODE_SIZE(mode) > 16 ? 0 :
+          (COMPLEX_MODE_P(mode) &&
+            ((regno) < FIRST_NOQI_REG && (regno) + GET_MODE_SIZE(mode) > FIRST_NOQI_REG)) ? 0 :
+          ia16_hard_regno_nregs[GET_MODE_SIZE(mode)][regno] &&
+            (! TARGET_PROTECTED_MODE || (mode) == PHImode
+             || ((regno) != DS_REG && (regno) != ES_REG)));
+}
+
+#undef TARGET_HARD_REGNO_MODE_OK
+#define TARGET_HARD_REGNO_MODE_OK ia16_hard_regno_mode_ok
+
+static bool
+ia16_modes_tieable_p (machine_mode mode1, machine_mode mode2)
+{
+  return (GET_MODE_SIZE(mode2) > 1 && GET_MODE_SIZE(mode1) > 1);
+}
+
+#undef TARGET_MODES_TIEABLE_P
+#define TARGET_MODES_TIEABLE_P ia16_modes_tieable_p
+
+static bool
+ia16_can_change_mode_class (machine_mode from, machine_mode to,
+                             reg_class_t rclass)
+{
+  return !(GET_MODE_SIZE(to) > GET_MODE_SIZE(from)
+           || ((to) == QImode && reg_classes_intersect_p (HI_REGS, (rclass))));
+}
+
+#undef TARGET_CAN_CHANGE_MODE_CLASS
+#define TARGET_CAN_CHANGE_MODE_CLASS ia16_can_change_mode_class
+
+static unsigned char
+ia16_class_max_nregs (reg_class_t rclass, machine_mode mode)
+{
+  /* Note: reload_in_progress was removed, using lra_in_progress instead */
+  return ((rclass) == BASE_W_INDEX_REGS && lra_in_progress ? 4 :
+          (rclass) == ES_GENERAL_REGS ? 3 :
+          (rclass) == SEG_GENERAL_REGS ? 3 :
+          (rclass) == BASE_W_INDEX_REGS ? 2 :
+          (rclass) == SEGMENT_REGS ? 1 :
+          (rclass) == ES_REGS ? 1 :
+          (rclass) == DS_REGS ? 1 :
+          (rclass) == HI_REGS ? MAX (ia16_hard_regno_nregs[GET_MODE_SIZE(mode)][0], 1) :
+          MAX (ia16_hard_regno_nregs[GET_MODE_SIZE(mode)][0], 1));
+}
+
+#undef TARGET_CLASS_MAX_NREGS
+#define TARGET_CLASS_MAX_NREGS ia16_class_max_nregs
 
 /* The Global targetm Variable */
 
@@ -5577,7 +5642,7 @@ ia16_memory_offset_known (rtx m1, rtx m2, int *offset)
 /* Return true if memory operands M1 and M2 are suitable for a move
  * multiple instruction in mode MODE.  Return false otherwise.  */
 bool
-ia16_move_multiple_mem_p (enum machine_mode mode, rtx m1, rtx m2)
+ia16_move_multiple_mem_p (machine_mode mode, rtx m1, rtx m2)
 {
   int offset;
 
@@ -5590,9 +5655,9 @@ ia16_move_multiple_mem_p (enum machine_mode mode, rtx m1, rtx m2)
 /* Return true if register operands R1 and R2 are suitable for a move
  * multiple instruction in mode MODE.  Return false otherwise.  */
 bool
-ia16_move_multiple_reg_p (enum machine_mode mode, rtx r1, rtx r2)
+ia16_move_multiple_reg_p (machine_mode mode, rtx r1, rtx r2)
 {
-  enum machine_mode mode2x = GET_MODE_2XWIDER_MODE (mode);
+  machine_mode mode2x = GET_MODE_2XWIDER_MODE (mode).else_void ();
   unsigned int reg1no = REGNO (r1);
 
   if (!HARD_REGNO_MODE_OK (reg1no, mode2x))

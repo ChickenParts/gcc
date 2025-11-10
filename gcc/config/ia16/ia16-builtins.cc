@@ -95,8 +95,7 @@ overload_gcc_builtin (enum ia16_builtin resolver_code,
 {
   tree resolver_decl = builtin_decl_explicit (impl_code), impl_decl;
   tree fntype = TREE_TYPE (resolver_decl);
-  DECL_BUILT_IN_CLASS (resolver_decl) = BUILT_IN_MD;
-  DECL_FUNCTION_CODE (resolver_decl) = (enum built_in_function) resolver_code;
+  set_decl_built_in_function (resolver_decl, BUILT_IN_MD, resolver_code);
   ia16_builtin_decls[resolver_code] = resolver_decl;
   impl_decl = add_builtin_function (impl_name, fntype, impl_code,
 				    BUILT_IN_NORMAL, NULL, NULL_TREE);
@@ -120,7 +119,7 @@ ia16_init_builtins (void)
   if (TARGET_PROTECTED_MODE)
     {
       intSEG_type_node = build_distinct_type_copy (unsigned_intHI_type_node);
-      SET_TYPE_MODE (intSEG_type_node, PHImode);
+      TYPE_MODE (intSEG_type_node) = PHImode;
     }
   (*lang_hooks.types.register_builtin_type) (intSEG_type_node, "__segment");
   const_void_far_type_node
@@ -229,7 +228,9 @@ ia16_expand_builtin (tree expr, rtx target ATTRIBUTE_UNUSED,
 {
   tree fndecl = TREE_OPERAND (CALL_EXPR_FN (expr), 0), arg0;
   rtx op0, res;
-  unsigned fcode = DECL_FUNCTION_CODE (fndecl);
+  if (!fndecl_built_in_p (fndecl, BUILT_IN_MD))
+    return NULL_RTX;
+  unsigned fcode = as_builtin_fn (fndecl);
 
   switch (fcode)
     {
@@ -280,7 +281,9 @@ tree
 ia16_resolve_overloaded_builtin (unsigned loc ATTRIBUTE_UNUSED,
 				 tree fndecl, void *arglist)
 {
-  unsigned fcode = DECL_FUNCTION_CODE (fndecl);
+  if (!fndecl_built_in_p (fndecl, BUILT_IN_MD))
+    return NULL_TREE;
+  unsigned fcode = as_builtin_fn (fndecl);
   vec<tree, va_gc>& args = * (vec<tree, va_gc> *) arglist;
   tree op;
 
@@ -306,7 +309,9 @@ tree
 ia16_fold_builtin (tree fndecl, int n_args, tree *args,
 		   bool ignore ATTRIBUTE_UNUSED)
 {
-  unsigned fcode = DECL_FUNCTION_CODE (fndecl);
+  if (!fndecl_built_in_p (fndecl, BUILT_IN_MD))
+    return NULL_TREE;
+  unsigned fcode = as_builtin_fn (fndecl);
   tree op, name, fake, faketype, ptrtype;
 
   switch (fcode)

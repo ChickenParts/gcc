@@ -54,9 +54,9 @@ extern HOST_WIDE_INT
 						 unsigned int to);
 extern void	ia16_init_cumulative_args (CUMULATIVE_ARGS *, const_tree, rtx,
 					   tree, int);
-extern enum machine_mode
-		ia16_cc_modes_compatible (enum machine_mode mode1,
-					  enum machine_mode mode2);
+extern machine_mode
+		ia16_cc_modes_compatible (machine_mode mode1,
+					  machine_mode mode2);
 
 extern rtx	ia16_expand_weird_pointer_plus_expr (rtx op0, rtx op1,
 						     rtx target,
@@ -80,7 +80,7 @@ extern rtx	ia16_push_reg (unsigned int regno);
 extern rtx	ia16_pop_reg (unsigned int regno);
 #ifdef RTX_CODE
 extern rtx	ia16_far_pointer_offset (rtx op);
-extern enum machine_mode
+extern machine_mode
 		ia16_select_cc_mode (enum rtx_code op, rtx x, rtx y,
 				     bool branch);
 extern int	ia16_branch_cost (bool speed_p, bool predictable_p);
@@ -88,9 +88,9 @@ extern rtx	ia16_gen_compare_reg (enum rtx_code op, rtx x, rtx y,
 				      bool branch);
 extern bool	ia16_arith_operands_p (enum rtx_code code, rtx *operands);
 extern rtx	ia16_prepare_operands (enum rtx_code, rtx *operands);
-extern bool	ia16_move_multiple_mem_p (enum machine_mode mode, rtx m1,
+extern bool	ia16_move_multiple_mem_p (machine_mode mode, rtx m1,
 					  rtx m2);
-extern bool	ia16_move_multiple_reg_p (enum machine_mode mode, rtx r1,
+extern bool	ia16_move_multiple_reg_p (machine_mode mode, rtx r1,
 					  rtx r2);
 extern bool	ia16_non_overlapping_mem_p (rtx m1, rtx m2);
 #endif

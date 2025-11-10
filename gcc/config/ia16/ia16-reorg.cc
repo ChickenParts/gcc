@@ -72,7 +72,10 @@ ia16_verify_calls_from_no_assume_ds (void)
     {
       if (CALL_P (insn))
 	{
-	  rtx call = get_call_rtx_from (insn);
+	  rtx call = PATTERN (insn);
+	  if (GET_CODE (call) == PARALLEL)
+	    call = XVECEXP (call, 0, 0);
+	  call = XEXP (call, 1);
 	  rtx callee = XEXP (XEXP (call, 0), 0);
 	  if (ia16_ds_data_function_rtx_p (callee))
 	      warning_at (LOCATION_LOCUS (INSN_LOCATION (insn)),
@@ -98,7 +101,10 @@ ia16_verify_calls_from_no_assume_ss (void)
     {
       if (CALL_P (insn))
 	{
-	  rtx call = get_call_rtx_from (insn);
+	  rtx call = PATTERN (insn);
+	  if (GET_CODE (call) == PARALLEL)
+	    call = XVECEXP (call, 0, 0);
+	  call = XEXP (call, 1);
 	  rtx callee = XEXP (XEXP (call, 0), 0);
 	  if (ia16_ss_data_function_rtx_p (callee))
 	      warning_at (LOCATION_LOCUS (INSN_LOCATION (insn)),
@@ -997,7 +1003,10 @@ ia16_elide_unneeded_ss_stuff (void)
 	 %ds, but we know that this is not really true.  */
       if (CALL_P (insn))
 	{
-	  rtx call = get_call_rtx_from (insn);
+	  rtx call = PATTERN (insn);
+	  if (GET_CODE (call) == PARALLEL)
+	    call = XVECEXP (call, 0, 0);
+	  call = XEXP (call, 1);
 	  rtx callee = XEXP (XEXP (call, 0), 0);
 	  if (ia16_save_ds_function_rtx_p (callee))
 	    continue;

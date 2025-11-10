@@ -124,15 +124,18 @@
 /* FIXME: Not documented: CCmode is 32 bits.  */
 /* Must not return 0 or subreg_get_info() may divide by zero.  */
 /* FIXME: Handling of XFmode needs to use GET_MODE_PRECISION(). */
-#define HARD_REGNO_NREGS(REGNO, MODE) \
+/* Replaced by target hook: #if 0 /* Replaced by target hook */
+/* Replaced by target hook: #define HARD_REGNO_NREGS(REGNO, MODE) \ */
+#if 0 /* Replaced by target hook */
+#endif
   (MAX (ia16_hard_regno_nregs[GET_MODE_SIZE(MODE)][REGNO], 1))
 
-/* There are more cases than those caught here, but HARD_REGNO_MODE_OK()
-   forbids them. Catch multireg values that straddle the boundary between
-   8-bit and 16-bit registers. */
+/* Deprecated: /* There are more cases than those caught here, but HARD_REGNO_MODE_OK()
+/* Deprecated:    forbids them. Catch multireg values that straddle the boundary between
+/* Deprecated:    8-bit and 16-bit registers. */ */
 #define HARD_REGNO_NREGS_HAS_PADDING(REGNO, MODE) \
-	((REGNO) < FIRST_NOQI_REG && \
-	 (REGNO) + GET_MODE_SIZE(MODE) > FIRST_NOQI_REG)
+/* Deprecated: 	((REGNO) < FIRST_NOQI_REG && \
+/* Deprecated: 	 (REGNO) + GET_MODE_SIZE(MODE) > FIRST_NOQI_REG) */
 
 #define HARD_REGNO_NREGS_WITH_PADDING(REGNO, MODE) \
 	(GET_MODE_SIZE(MODE))
@@ -140,15 +143,15 @@
 #define REGMODE_NATURAL_SIZE(MODE)	\
 	(GET_MODE_SIZE(MODE) == 1 || GET_MODE_CLASS(MODE) == MODE_CC ? \
 	 1 : UNITS_PER_WORD)
-
-/* Complex modes must not cross the boundary between 8-bit and 16-bit
-   registers because subreg_get_info() will fail in that case.  */
-#define HARD_REGNO_MODE_OK(REGNO, MODE) \
-  (GET_MODE_CLASS(MODE) == MODE_CC ? (REGNO) == CC_REG :		\
-   (REGNO) == CC_REG ? GET_MODE_CLASS(MODE) == MODE_CC :		\
-   GET_MODE_SIZE(MODE) > 16 ? 0 :					\
-   COMPLEX_MODE_P(MODE) &&						\
-     HARD_REGNO_NREGS_HAS_PADDING((REGNO), (MODE)) ? 0 :		\
+/* Replaced by target hook: 
+/* Replaced by target hook: /* Complex modes must not cross the boundary between 8-bit and 16-bit
+/* Replaced by target hook:    registers because subreg_get_info() will fail in that case.  */
+/* Replaced by target hook: #define HARD_REGNO_MODE_OK(REGNO, MODE) \
+/* Replaced by target hook:   (GET_MODE_CLASS(MODE) == MODE_CC ? (REGNO) == CC_REG :		\
+/* Replaced by target hook:    (REGNO) == CC_REG ? GET_MODE_CLASS(MODE) == MODE_CC :		\
+/* Replaced by target hook:    GET_MODE_SIZE(MODE) > 16 ? 0 :					\
+/* Replaced by target hook:    COMPLEX_MODE_P(MODE) &&						\
+/* Replaced by target hook:      HARD_REGNO_NREGS_HAS_PADDING((REGNO), (MODE)) ? 0 :		\ */
    ia16_hard_regno_nregs[GET_MODE_SIZE(MODE)][REGNO] &&			\
      (! TARGET_PROTECTED_MODE || (MODE) == PHImode			\
       || ((REGNO) != DS_REG && (REGNO) != ES_REG)))
@@ -156,9 +159,9 @@
 /* For some reason, allowing registers other than %ds to be renamed to %ds
    during the rnreg pass (with e.g. -funroll-loops) leads to incorrect code
    around %ds <- %ss operations, so disable that.
-
-   And, rnreg has this weird idea to rename the segment register in a
-   segment override to a non-segment register (argh!).  Disable that too.  */
+/* Deprecated: 
+/* Deprecated:    And, rnreg has this weird idea to rename the segment register in a
+/* Deprecated:    segment override to a non-segment register (argh!).  Disable that too.  */ */
 #define HARD_REGNO_RENAME_OK(FROM, TO) \
 	(((FROM) != DS_REG && (FROM) != ES_REG && (TO) != DS_REG) \
 	 || ((FROM) == DS_REG && (TO) == ES_REG))
@@ -171,8 +174,8 @@
  * 1) Access of a 16-bit value in MODE1 as an 8-bit value MODE2.
  *    This will fail for registers in class HI_REGS.
  * 2) Access of an 8-bit value in MODE1 as an 16-bit value in MODE2.
- *    This will fail for registers in class UP_QI_REGS.
- * Used in: rtlanal.c, combine.c, regclass.c and local-alloc.c.
+/* Replaced by target hook:  *    This will fail for registers in class UP_QI_REGS.
+/* Replaced by target hook:  * Used in: rtlanal.c, combine.c, regclass.c and local-alloc.c. */
  */
 #define MODES_TIEABLE_P(MODE1, MODE2)	\
 	(GET_MODE_SIZE(MODE2) > 1 && GET_MODE_SIZE(MODE1) > 1)
@@ -317,22 +320,22 @@ enum reg_class {	/*	 17 16 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0 */
  * TODO: A target hook for reload_reg_class_lower().
  * FIXME: CLASS_MAX_NREGS (GENERAL_REGS, XFmode) returns 12.  10 is correct.
  */
-#define CLASS_MAX_NREGS(class, mode) \
-	((class) == BASE_W_INDEX_REGS && reload_in_progress ? 4 :	\
-	 (class) == INDEX_REGS && reload_in_progress ? 4 :		\
-	 (class) == BASE_REGS && reload_in_progress ? 4 :		\
-	 (class) == BX_REGS && reload_in_progress ? 4 :			\
-	 (class) == CX_REGS && reload_in_progress ? 4 :			\
-	 (reg_classes_intersect_p (QI_REGS, (class)) ?			\
- 	 GET_MODE_SIZE (mode) :						\
-	 (GET_MODE_SIZE (mode) + 1U) / 2U) + 0U)
+/* Replaced by target hook: #define CLASS_MAX_NREGS(class, mode) \
+   	((class) == BASE_W_INDEX_REGS && reload_in_progress ? 4 :	\
+   	 (class) == INDEX_REGS && reload_in_progress ? 4 :		\
+   	 (class) == BASE_REGS && reload_in_progress ? 4 :		\
+   	 (class) == BX_REGS && reload_in_progress ? 4 :			\
+   	 (class) == CX_REGS && reload_in_progress ? 4 :			\
+   	 (reg_classes_intersect_p (QI_REGS, (class)) ?			\
+    	 GET_MODE_SIZE (mode) :						\
+	 (GET_MODE_SIZE (mode) + 1U) / 2U) + 0U) */
 
 /* HI_REGS cannot change mode to QImode.  We cannot change mode to a
  * larger mode without increasing the number of hard regs used.
  * TODO: This will change when x87 FPUs are supported.  */
-#define CANNOT_CHANGE_MODE_CLASS(FROM, TO, CLASS)	\
-	(GET_MODE_SIZE(TO) > GET_MODE_SIZE(FROM)	\
-	 || ((TO) == QImode && reg_classes_intersect_p (HI_REGS, (CLASS))))
+/* Replaced by target hook: #define CANNOT_CHANGE_MODE_CLASS(FROM, TO, CLASS)	\
+   	(GET_MODE_SIZE(TO) > GET_MODE_SIZE(FROM)	\
+   	 || ((TO) == QImode && reg_classes_intersect_p (HI_REGS, (CLASS)))) */
 
 /* Stack Layout and Calling Conventions
  * Basic Stack Layout
