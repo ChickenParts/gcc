@@ -1370,7 +1370,7 @@ ia16_function_value (const_tree ret_type,
 static rtx
 ia16_libcall_value (machine_mode mode, const_rtx fun ATTRIBUTE_UNUSED)
 {
-  if (! HARD_REGNO_MODE_OK (A_REG, mode))
+  if (! ia16_hard_regno_mode_ok (A_REG, mode))
     return NULL;
 
   return gen_rtx_REG (mode, A_REG);
@@ -5660,7 +5660,7 @@ ia16_move_multiple_reg_p (machine_mode mode, rtx r1, rtx r2)
   machine_mode mode2x = GET_MODE_2XWIDER_MODE (mode).else_void ();
   unsigned int reg1no = REGNO (r1);
 
-  if (!HARD_REGNO_MODE_OK (reg1no, mode2x))
+  if (!ia16_hard_regno_mode_ok (reg1no, mode2x))
     return (false);
   return (REGNO (r2) - reg1no
 	  == subreg_regno_offset (reg1no, mode2x, GET_MODE_SIZE (mode), mode));

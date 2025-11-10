@@ -119,7 +119,7 @@ ia16_init_builtins (void)
   if (TARGET_PROTECTED_MODE)
     {
       intSEG_type_node = build_distinct_type_copy (unsigned_intHI_type_node);
-      TYPE_MODE (intSEG_type_node) = PHImode;
+      SET_TYPE_MODE (intSEG_type_node, PHImode);
     }
   (*lang_hooks.types.register_builtin_type) (intSEG_type_node, "__segment");
   const_void_far_type_node
@@ -230,7 +230,7 @@ ia16_expand_builtin (tree expr, rtx target ATTRIBUTE_UNUSED,
   rtx op0, res;
   if (!fndecl_built_in_p (fndecl, BUILT_IN_MD))
     return NULL_RTX;
-  unsigned fcode = as_builtin_fn (fndecl);
+  unsigned fcode = DECL_MD_FUNCTION_CODE (fndecl);
 
   switch (fcode)
     {
@@ -283,7 +283,7 @@ ia16_resolve_overloaded_builtin (unsigned loc ATTRIBUTE_UNUSED,
 {
   if (!fndecl_built_in_p (fndecl, BUILT_IN_MD))
     return NULL_TREE;
-  unsigned fcode = as_builtin_fn (fndecl);
+  unsigned fcode = DECL_MD_FUNCTION_CODE (fndecl);
   vec<tree, va_gc>& args = * (vec<tree, va_gc> *) arglist;
   tree op;
 
@@ -311,7 +311,7 @@ ia16_fold_builtin (tree fndecl, int n_args, tree *args,
 {
   if (!fndecl_built_in_p (fndecl, BUILT_IN_MD))
     return NULL_TREE;
-  unsigned fcode = as_builtin_fn (fndecl);
+  unsigned fcode = DECL_MD_FUNCTION_CODE (fndecl);
   tree op, name, fake, faketype, ptrtype;
 
   switch (fcode)
