@@ -49,6 +49,9 @@ compile_commands.json
 .gdbinit
 .gdb_history
 
+# Build directories
+build-*/
+
 perf.data
 perf.data.old
 
