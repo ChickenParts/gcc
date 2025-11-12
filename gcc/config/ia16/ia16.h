@@ -140,9 +140,7 @@
 #define HARD_REGNO_NREGS_WITH_PADDING(REGNO, MODE) \
 	(GET_MODE_SIZE(MODE))
 
-#define REGMODE_NATURAL_SIZE(MODE)	\
-	(GET_MODE_SIZE(MODE) == 1 || GET_MODE_CLASS(MODE) == MODE_CC ? \
-	 1 : UNITS_PER_WORD)
+#define REGMODE_NATURAL_SIZE(MODE) ia16_regmode_natural_size (MODE)
 /* HARD_REGNO_MODE_OK has been replaced by TARGET_HARD_REGNO_MODE_OK target hook.
    See ia16_hard_regno_mode_ok() in ia16.cc
 
@@ -353,6 +351,8 @@ enum reg_class {	/*	 17 16 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0 */
 #define FIRST_PARM_OFFSET(fundecl) 0
 
 extern int ia16_function_args_grow_downward (const_tree funtype);
+extern unsigned int ia16_regmode_natural_size (machine_mode);
+extern poly_int64 ia16_push_rounding (poly_int64);
 
 #define RETURN_ADDR_RTX(COUNT, FRAME) ia16_return_addr_rtx (COUNT, FRAME)				       	      \
 
@@ -387,7 +387,7 @@ extern int ia16_function_args_grow_downward (const_tree funtype);
 
 /* Passing Function Arguments on the Stack */
 #define PUSH_ARGS		1
-#define PUSH_ROUNDING(BYTES)	(((BYTES) + 1) & ~1)
+#define PUSH_ROUNDING(BYTES)	ia16_push_rounding (BYTES)
 
 /* Passing Arguments in Registers */
 typedef struct ia16_args

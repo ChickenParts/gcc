@@ -830,6 +830,25 @@ ia16_function_args_grow_downward (const_tree fntype)
   return attrs && lookup_attribute ("pascal", attrs);
 }
 
+/* Implement REGMODE_NATURAL_SIZE.
+   For 16-bit x86, byte-sized modes and CC mode have natural size of 1 byte,
+   all other modes have natural size of 2 bytes (UNITS_PER_WORD).  */
+unsigned int
+ia16_regmode_natural_size (machine_mode mode)
+{
+  if (known_eq (GET_MODE_SIZE (mode), 1) || GET_MODE_CLASS (mode) == MODE_CC)
+    return 1;
+  return UNITS_PER_WORD;
+}
+
+/* Implement PUSH_ROUNDING.
+   Round up push sizes to word boundary (2 bytes) for 16-bit x86.  */
+poly_int64
+ia16_push_rounding (poly_int64 bytes)
+{
+  return ROUND_UP (bytes, UNITS_PER_WORD);
+}
+
 /* Calculates the difference between the location storing the current
  * function's return address, and the argument pointer.
  */
