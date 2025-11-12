@@ -30,6 +30,7 @@
 #include "tm_p.h"
 #include "expmed.h"
 #include "optabs.h"
+#include "memmodel.h"
 #include "regs.h"
 #include "emit-rtl.h"
 #include "diagnostic.h"

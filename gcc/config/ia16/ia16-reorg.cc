@@ -28,6 +28,7 @@
 #include "tm_p.h"
 #include "expmed.h"
 #include "optabs.h"
+#include "memmodel.h"
 #include "regs.h"
 #include "emit-rtl.h"
 #include "diagnostic.h"
@@ -601,7 +602,7 @@ ia16_rewrite_bp_as_bx (void)
   if (! global_options.x_flag_omit_frame_pointer
       || ! ia16_save_reg_p (BP_REG)
       || ia16_in_save_all_function_p ()
-      || ! call_used_regs[B_REG] || ! call_used_regs[BH_REG]
+      || ! call_used_or_fixed_reg_p (B_REG) || ! call_used_or_fixed_reg_p (BH_REG)
       || fixed_regs[B_REG] || fixed_regs[BH_REG]
       || FUNCTION_ARG_REGNO_P (B_REG)
       || FUNCTION_ARG_REGNO_P (BH_REG))
@@ -1221,8 +1222,8 @@ ia16_rewrite_movw_as_xchgw (void)
       src = SET_SRC (pat);
       if ((! REG_P (dest) && ! SUBREG_P (dest))
 	  || (! REG_P (src) && ! SUBREG_P (src))
-	  || GET_MODE_SIZE (GET_MODE (dest)) != 2
-	  || GET_MODE_SIZE (GET_MODE (src)) != 2)
+	  || ! known_eq (GET_MODE_SIZE (GET_MODE (dest)), 2)
+	  || ! known_eq (GET_MODE_SIZE (GET_MODE (src)), 2))
 	continue;
 
       while (SUBREG_P (dest))
@@ -1232,8 +1233,8 @@ ia16_rewrite_movw_as_xchgw (void)
 
       if (! REG_P (dest)
 	  || ! REG_P (src)
-	  || GET_MODE_SIZE (GET_MODE (dest)) != 2
-	  || GET_MODE_SIZE (GET_MODE (src)) != 2)
+	  || ! known_eq (GET_MODE_SIZE (GET_MODE (dest)), 2)
+	  || ! known_eq (GET_MODE_SIZE (GET_MODE (src)), 2))
 	continue;
 
       rd = REGNO (dest);
@@ -1304,7 +1305,7 @@ ia16_machine_dependent_reorg (void)
       compute_bb_for_insn ();
       ia16_rewrite_reg_parm_save_as_push ();
 
-      if (TARGET_ALLOCABLE_DS_REG && call_used_regs[DS_REG])
+      if (TARGET_ALLOCABLE_DS_REG && call_used_or_fixed_reg_p (DS_REG))
 	ia16_rewrite_bp_as_bx ();
 
       /* The insn notes are only needed by the `movw' -> `xchgw' rewriting
@@ -1322,7 +1323,7 @@ ia16_machine_dependent_reorg (void)
 	  df_analyze ();
 	}
 
-      if (TARGET_ALLOCABLE_DS_REG && call_used_regs[DS_REG])
+      if (TARGET_ALLOCABLE_DS_REG && call_used_or_fixed_reg_p (DS_REG))
 	{
 	  if (ia16_in_ss_data_function_p ())
 	    {
