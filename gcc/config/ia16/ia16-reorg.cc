@@ -18,6 +18,8 @@
    with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define IN_TARGET_CODE 1
+
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
@@ -26,9 +28,9 @@
 #include "tree.h"
 #include "df.h"
 #include "tm_p.h"
+#include "memmodel.h"
 #include "expmed.h"
 #include "optabs.h"
-#include "memmodel.h"
 #include "regs.h"
 #include "emit-rtl.h"
 #include "diagnostic.h"
