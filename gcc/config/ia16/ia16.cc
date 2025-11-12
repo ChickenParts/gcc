@@ -59,6 +59,8 @@
 #include "attribs.h"
 #include "varasm.h"
 #include "recog.h"
+#include "memmodel.h"
+#include "tm-preds.h"
 
 /* This file should be included last.  */
 #include "target-def.h"
@@ -107,7 +109,7 @@ ia16_expand_to_rtl_hook (void)
  * Disallow register size changes unless HARD_REGNO_NREGS_HAS_PADDING.
  * CCmode is 4 bytes.
  */
-unsigned char ia16_hard_regno_nregs[17][FIRST_PSEUDO_REGISTER] =
+unsigned char ia16_hard_regno_nregs_table[17][FIRST_PSEUDO_REGISTER] =
 {
 /* size     cl  ch  al  ah  dl  dh  bl  bh  si  di  bp  es  ds  sp  cc  ss  cs  ap */
 /*  0 */  {  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 },
@@ -245,7 +247,7 @@ ia16_save_reg_p (unsigned int r)
 {
   if (r == BP_REG)
     {
-      if (! frame_pointer_needed && get_frame_size () != 0)  /* FIXME */
+      if (! frame_pointer_needed && maybe_ne (get_frame_size (), 0))  /* FIXME */
 	frame_pointer_needed = 1;
 
       return frame_pointer_needed;
@@ -261,14 +263,14 @@ ia16_save_reg_p (unsigned int r)
       if (ia16_regno_in_class_p (r, QI_REGS))
 	{
 	  if (! df_regs_ever_live_p (r) && ! df_regs_ever_live_p (r + 1)
-	      && ((! call_used_regs[r] && ! call_used_regs[r + 1])
+	      && ((! call_used_or_fixed_reg_p (r) && ! call_used_or_fixed_reg_p (r + 1))
 		  || crtl->is_leaf))
 	    return 0;  /* TODO: refine this */
 	}
       else
 	{
 	  if (! df_regs_ever_live_p (r)
-	      && (! call_used_regs[r] || crtl->is_leaf))
+	      && (! call_used_or_fixed_reg_p (r) || crtl->is_leaf))
 	    return 0;  /* TODO: refine this */
 	}
 
@@ -300,11 +302,11 @@ ia16_save_reg_p (unsigned int r)
       return 0;
     default:
       if (! ia16_regno_in_class_p (r, QI_REGS))
-	return (df_regs_ever_live_p (r) && !call_used_regs[r]);
+	return (df_regs_ever_live_p (r) && !call_used_or_fixed_reg_p (r));
       if (ia16_regno_in_class_p (r, UP_QI_REGS))
 	return (0);
-      return ((df_regs_ever_live_p (r + 0) && !call_used_regs[r + 0]) ||
-	      (df_regs_ever_live_p (r + 1) && !call_used_regs[r + 1]));
+      return ((df_regs_ever_live_p (r + 0) && !call_used_or_fixed_reg_p (r + 0)) ||
+	      (df_regs_ever_live_p (r + 1) && !call_used_or_fixed_reg_p (r + 1)));
     }
 }
 
@@ -558,7 +560,7 @@ ia16_ds_data_function_type_p (const_tree funtype)
 {
   tree attrs;
 
-  if (! call_used_regs[DS_REG])
+  if (! call_used_or_fixed_reg_p (DS_REG))
     return 1;
 
   attrs = funtype ? TYPE_ATTRIBUTES (funtype) : NULL_TREE;
@@ -595,7 +597,7 @@ int
 ia16_in_ds_data_function_p (void)
 {
   if (! cfun)
-    return TARGET_ASSUME_DS_DATA && call_used_regs[DS_REG];
+    return TARGET_ASSUME_DS_DATA && call_used_or_fixed_reg_p (DS_REG);
   ia16_cache_function_info (false);
   return (cfun->machine->cached_callcvt & IA16_CALLCVT_DS_DATA) != 0;
 }
@@ -609,7 +611,7 @@ ia16_save_ds_function_type_p (const_tree funtype)
 {
   tree attrs;
 
-  if (! call_used_regs[DS_REG] || fixed_regs[DS_REG])
+  if (! call_used_or_fixed_reg_p (DS_REG) || fixed_regs[DS_REG])
     return 1;
 
   attrs = funtype ? TYPE_ATTRIBUTES (funtype) : NULL_TREE;
@@ -645,7 +647,7 @@ ia16_in_save_ds_function_p (void)
 {
   if (! cfun)
     {
-      if (! call_used_regs[DS_REG] || fixed_regs[DS_REG])
+      if (! call_used_or_fixed_reg_p (DS_REG) || fixed_regs[DS_REG])
 	return 1;
       return TARGET_ASSUME_DS_DATA;
     }
@@ -660,7 +662,7 @@ ia16_save_es_function_type_p (const_tree funtype)
 {
   tree attrs;
 
-  if (! call_used_regs[ES_REG] || fixed_regs[ES_REG])
+  if (! call_used_or_fixed_reg_p (ES_REG) || fixed_regs[ES_REG])
     return 1;
 
   attrs = funtype ? TYPE_ATTRIBUTES (funtype) : NULL_TREE;
@@ -680,7 +682,7 @@ int
 ia16_in_save_es_function_p (void)
 {
   if (! cfun)
-    return ! call_used_regs[ES_REG] || fixed_regs[ES_REG];
+    return ! call_used_or_fixed_reg_p (ES_REG) || fixed_regs[ES_REG];
   ia16_cache_function_info (false);
   return (cfun->machine->cached_callcvt & IA16_CALLCVT_SAVE_ES) != 0;
 }
@@ -846,7 +848,7 @@ ia16_regmode_natural_size (machine_mode mode)
 poly_int64
 ia16_push_rounding (poly_int64 bytes)
 {
-  return ROUND_UP (bytes, UNITS_PER_WORD);
+  return aligned_upper_bound (bytes, UNITS_PER_WORD);
 }
 
 /* Implement HARD_REGNO_NREGS_WITH_PADDING.
@@ -882,7 +884,8 @@ ia16_return_addr_pointer_to_arg_pointer_offset (void)
    * The offset now points to the topmost argument.  For a `pascal'
    * function, adjust it to point after the bottommost argument.
    */
-  if (cfun->args_grow_downward && crtl->args.size != -1)
+  if (cfun->decl && ia16_function_args_grow_downward (TREE_TYPE (cfun->decl))
+      && crtl->args.size != -1)
     offset += crtl->args.size;
 
   return offset;
@@ -933,7 +936,7 @@ ia16_frame_pointer_required (void)
      stack arguments, even if it does not actually read them.  We should fix
      this, as an optimization.  The fix may involve scanning the insn stream.
 	-- tkchia  */
-  return crtl->args.info.hwords >= 4 || cfun->stdarg || get_frame_size () != 0;
+  return crtl->args.info.hwords >= 4 || cfun->stdarg || maybe_ne (get_frame_size (), 0);
 }
 
 #undef	TARGET_CAN_ELIMINATE
@@ -1777,7 +1780,7 @@ ia16_handle_cconv_attribute (tree *node, tree name, tree args ATTRIBUTE_UNUSED,
       return NULL_TREE;
     }
 
-  if (! call_used_regs[DS_REG])
+  if (! call_used_or_fixed_reg_p (DS_REG))
     {
       if (is_attribute_p ("assume_ds_data", name)
 	  || is_attribute_p ("no_assume_ds_data", name))
@@ -3551,14 +3554,14 @@ ia16_memory_move_cost (machine_mode mode, reg_class_t rclass, bool in)
     {
       if (in)
 	{
-	  if (GET_MODE_SIZE (mode) == 1)
+	  if (known_eq (GET_MODE_SIZE (mode), 1))
 	    cost = IA16_COST (acc_load[M_QI]);
 	  else
 	    cost = IA16_COST (acc_load[M_HI]) * ia16_mode_hwords (mode);
 	}
       else
 	{
-	  if (GET_MODE_SIZE (mode) == 1)
+	  if (known_eq (GET_MODE_SIZE (mode), 1))
 	    cost = IA16_COST (acc_store[M_QI]);
 	  else
 	    cost = IA16_COST (acc_store[M_HI]) * ia16_mode_hwords (mode);
@@ -3570,14 +3573,14 @@ ia16_memory_move_cost (machine_mode mode, reg_class_t rclass, bool in)
     {
       if (in)
 	{
-	  if (GET_MODE_SIZE (mode) == 1)
+	  if (known_eq (GET_MODE_SIZE (mode), 1))
 	    cost = IA16_COST (seg_load[M_QI]);
 	  else
 	    cost = IA16_COST (seg_load[M_HI]) * ia16_mode_hwords (mode);
 	}
       else
 	{
-	  if (GET_MODE_SIZE (mode) == 1)
+	  if (known_eq (GET_MODE_SIZE (mode), 1))
 	    cost = IA16_COST (seg_store[M_QI]);
 	  else
 	    cost = IA16_COST (seg_store[M_HI]) * ia16_mode_hwords (mode);
@@ -3587,14 +3590,14 @@ ia16_memory_move_cost (machine_mode mode, reg_class_t rclass, bool in)
     {
       if (in)
 	{
-	  if (GET_MODE_SIZE (mode) == 1)
+	  if (known_eq (GET_MODE_SIZE (mode), 1))
 	    cost = IA16_COST (int_load[M_QI]);
 	  else
 	    cost = IA16_COST (int_load[M_HI]) * ia16_mode_hwords (mode);
 	}
       else
 	{
-	  if (GET_MODE_SIZE (mode) == 1)
+	  if (known_eq (GET_MODE_SIZE (mode), 1))
 	    cost = IA16_COST (int_store[M_QI]);
 	  else
 	    cost = IA16_COST (int_store[M_HI]) * ia16_mode_hwords (mode);
@@ -3992,7 +3995,7 @@ ia16_rtx_costs (rtx x, machine_mode mode, int outer_code_i,
 	  return (false);
 	}
       /* "shl $1, dest" is preferred over "add dest, dest".  */
-      if (GET_MODE_SIZE (mode) <= 2
+      if (known_le (GET_MODE_SIZE (mode), 2)
 	  && rtx_equal_p (XEXP (x, 0), XEXP (x, 1)))
 	{
 	  *total = 1 + IA16_COST (add[I_RTX (x)])
@@ -4875,10 +4878,10 @@ ia16_print_operand (FILE *file, rtx e, int code)
       regno = REGNO (x);
       if (code != 'R')
 	fputs (REGISTER_PREFIX, file);
-      if (GET_MODE_SIZE (mode) >= 2
+      if (known_ge (GET_MODE_SIZE (mode), 2)
        && (regno >= SI_REG || (regno & 1) == 0))
 	fputs (reg_HInames[regno], file);
-      else if (GET_MODE_SIZE (mode) == 1 && regno < SI_REG)
+      else if (known_eq (GET_MODE_SIZE (mode), 1) && regno < SI_REG)
 	fputs (reg_QInames[regno], file);
       else
 	output_operand_lossage ("Invalid register %s (nr. %u) in %smode.",
@@ -5465,7 +5468,7 @@ extern void ia16_set_current_function (tree);
 static unsigned int
 ia16_hard_regno_nregs (unsigned int regno, machine_mode mode)
 {
-  return MAX (ia16_hard_regno_nregs[GET_MODE_SIZE(mode)][regno], 1);
+  return MAX (ia16_hard_regno_nregs_table[GET_MODE_SIZE(mode).to_constant()][regno], 1);
 }
 
 #undef TARGET_HARD_REGNO_NREGS
@@ -5476,10 +5479,10 @@ ia16_hard_regno_mode_ok (unsigned int regno, machine_mode mode)
 {
   return (GET_MODE_CLASS(mode) == MODE_CC ? (regno) == CC_REG :
           (regno) == CC_REG ? GET_MODE_CLASS(mode) == MODE_CC :
-          GET_MODE_SIZE(mode) > 16 ? 0 :
+          known_gt (GET_MODE_SIZE(mode), 16) ? 0 :
           (COMPLEX_MODE_P(mode) &&
-            ((regno) < FIRST_NOQI_REG && (regno) + GET_MODE_SIZE(mode) > FIRST_NOQI_REG)) ? 0 :
-          ia16_hard_regno_nregs[GET_MODE_SIZE(mode)][regno] &&
+            ((regno) < FIRST_NOQI_REG && known_gt ((regno) + GET_MODE_SIZE(mode), FIRST_NOQI_REG))) ? 0 :
+          ia16_hard_regno_nregs_table[GET_MODE_SIZE(mode).to_constant()][regno] &&
             (! TARGET_PROTECTED_MODE || (mode) == PHImode
              || ((regno) != DS_REG && (regno) != ES_REG)));
 }
@@ -5490,7 +5493,7 @@ ia16_hard_regno_mode_ok (unsigned int regno, machine_mode mode)
 static bool
 ia16_modes_tieable_p (machine_mode mode1, machine_mode mode2)
 {
-  return (GET_MODE_SIZE(mode2) > 1 && GET_MODE_SIZE(mode1) > 1);
+  return (known_gt (GET_MODE_SIZE(mode2), 1) && known_gt (GET_MODE_SIZE(mode1), 1));
 }
 
 #undef TARGET_MODES_TIEABLE_P
@@ -5500,7 +5503,7 @@ static bool
 ia16_can_change_mode_class (machine_mode from, machine_mode to,
                              reg_class_t rclass)
 {
-  return !(GET_MODE_SIZE(to) > GET_MODE_SIZE(from)
+  return !(known_gt (GET_MODE_SIZE(to), GET_MODE_SIZE(from))
            || ((to) == QImode && reg_classes_intersect_p (HI_REGS, (rclass))));
 }
 
@@ -5518,8 +5521,8 @@ ia16_class_max_nregs (reg_class_t rclass, machine_mode mode)
           (rclass) == SEGMENT_REGS ? 1 :
           (rclass) == ES_REGS ? 1 :
           (rclass) == DS_REGS ? 1 :
-          (rclass) == HI_REGS ? MAX (ia16_hard_regno_nregs[GET_MODE_SIZE(mode)][0], 1) :
-          MAX (ia16_hard_regno_nregs[GET_MODE_SIZE(mode)][0], 1));
+          (rclass) == HI_REGS ? MAX (ia16_hard_regno_nregs_table[GET_MODE_SIZE(mode).to_constant()][0], 1) :
+          MAX (ia16_hard_regno_nregs_table[GET_MODE_SIZE(mode).to_constant()][0], 1));
 }
 
 #undef TARGET_CLASS_MAX_NREGS
@@ -5675,7 +5678,7 @@ ia16_move_multiple_mem_p (machine_mode mode, rtx m1, rtx m2)
   int offset;
 
   if (ia16_memory_offset_known (m2, m1, &offset))
-    return (GET_MODE_SIZE (mode) == offset);
+    return known_eq (GET_MODE_SIZE (mode), offset);
   else
     return (false);
 }
@@ -5705,9 +5708,9 @@ ia16_non_overlapping_mem_p (rtx m1, rtx m2)
     return (false);
 
   if (offset < 0)
-    return (GET_MODE_SIZE (GET_MODE (m1)) <= -offset);
+    return known_le (GET_MODE_SIZE (GET_MODE (m1)), -offset);
   else if (offset > 0)
-    return (GET_MODE_SIZE (GET_MODE (m2)) <=  offset);
+    return known_le (GET_MODE_SIZE (GET_MODE (m2)), offset);
   else
     return (false);
 }
@@ -5876,7 +5879,8 @@ ia16_expand_prologue (void)
       current_function_static_stack_size
 	= size + ia16_initial_arg_pointer_offset ();
 
-      if (cfun->args_grow_downward && crtl->args.size != -1)
+      if (cfun->decl && ia16_function_args_grow_downward (TREE_TYPE (cfun->decl))
+	  && crtl->args.size != -1)
 	current_function_static_stack_size -= crtl->args.size;
     }
 }
