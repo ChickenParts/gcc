@@ -49,24 +49,12 @@ static const struct default_options ia16_option_optimization_table[] =
 
 /* Implement TARGET_HANDLE_OPTION.  */
 static bool
-ia16_handle_option (struct gcc_options *opts,
+ia16_handle_option (struct gcc_options *opts ATTRIBUTE_UNUSED,
                      struct gcc_options *opts_set ATTRIBUTE_UNUSED,
-                     const struct cl_decoded_option *decoded,
+                     const struct cl_decoded_option *decoded ATTRIBUTE_UNUSED,
                      location_t loc ATTRIBUTE_UNUSED)
 {
-  size_t code = decoded->opt_index;
-  int value = decoded->value;
-
-  switch (code)
-    {
-    case OPT_march_:
-    case OPT_mtune_:
-      return true;
-
-    default:
-      return true;
-    }
-
+  /* All options are accepted by default. */
   return true;
 }
 
