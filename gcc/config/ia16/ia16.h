@@ -138,7 +138,7 @@
     (REGNO) + GET_MODE_SIZE(MODE) > FIRST_NOQI_REG) */
 
 #define HARD_REGNO_NREGS_WITH_PADDING(REGNO, MODE) \
-	(GET_MODE_SIZE(MODE))
+	(GET_MODE_SIZE(MODE).to_constant ())
 
 #define REGMODE_NATURAL_SIZE(MODE) ia16_regmode_natural_size (MODE)
 /* HARD_REGNO_MODE_OK has been replaced by TARGET_HARD_REGNO_MODE_OK target hook.
