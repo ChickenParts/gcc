@@ -138,7 +138,7 @@
     (REGNO) + GET_MODE_SIZE(MODE) > FIRST_NOQI_REG) */
 
 #define HARD_REGNO_NREGS_WITH_PADDING(REGNO, MODE) \
-	(GET_MODE_SIZE(MODE).to_constant ())
+	ia16_hard_regno_nregs_with_padding (REGNO, MODE)
 
 #define REGMODE_NATURAL_SIZE(MODE) ia16_regmode_natural_size (MODE)
 /* HARD_REGNO_MODE_OK has been replaced by TARGET_HARD_REGNO_MODE_OK target hook.
@@ -353,6 +353,7 @@ enum reg_class {	/*	 17 16 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0 */
 extern int ia16_function_args_grow_downward (const_tree funtype);
 extern unsigned int ia16_regmode_natural_size (machine_mode);
 extern poly_int64 ia16_push_rounding (poly_int64);
+extern unsigned int ia16_hard_regno_nregs_with_padding (unsigned int, machine_mode);
 
 #define RETURN_ADDR_RTX(COUNT, FRAME) ia16_return_addr_rtx (COUNT, FRAME)				       	      \
 

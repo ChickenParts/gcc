@@ -849,6 +849,15 @@ ia16_push_rounding (poly_int64 bytes)
   return ROUND_UP (bytes, UNITS_PER_WORD);
 }
 
+/* Implement HARD_REGNO_NREGS_WITH_PADDING.
+   For ia16, the padding size is just the mode size.  */
+unsigned int
+ia16_hard_regno_nregs_with_padding (unsigned int regno ATTRIBUTE_UNUSED,
+				     machine_mode mode)
+{
+  return GET_MODE_SIZE (mode).to_constant ();
+}
+
 /* Calculates the difference between the location storing the current
  * function's return address, and the argument pointer.
  */
