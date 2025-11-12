@@ -20,6 +20,8 @@
    with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define IN_TARGET_CODE 1
+
 /* I have no or little idea how many and which of these headers files I need
  * to include.  So don't look here if you don't have a clue either.
  *
@@ -858,7 +860,7 @@ unsigned int
 ia16_hard_regno_nregs_with_padding (unsigned int regno ATTRIBUTE_UNUSED,
 				     machine_mode mode)
 {
-  return GET_MODE_SIZE (mode).to_constant ();
+  return GET_MODE_SIZE (mode);
 }
 
 /* Calculates the difference between the location storing the current
@@ -886,8 +888,8 @@ ia16_return_addr_pointer_to_arg_pointer_offset (void)
    * function, adjust it to point after the bottommost argument.
    */
   if (cfun->decl && ia16_function_args_grow_downward (TREE_TYPE (cfun->decl))
-      && crtl->args.size != -1)
-    offset += crtl->args.size;
+      && maybe_ne (crtl->args.size, -1))
+    offset += crtl->args.size.to_constant ();
 
   return offset;
 }
@@ -1400,6 +1402,9 @@ ia16_function_value (const_tree ret_type,
 #undef	TARGET_LIBCALL_VALUE
 #define	TARGET_LIBCALL_VALUE	ia16_libcall_value
 
+/* Forward declaration */
+static bool ia16_hard_regno_mode_ok (unsigned int, machine_mode);
+
 static rtx
 ia16_libcall_value (machine_mode mode, const_rtx fun ATTRIBUTE_UNUSED)
 {
@@ -1436,7 +1441,7 @@ ia16_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 #undef	TARGET_GET_RAW_RESULT_MODE
 #define	TARGET_GET_RAW_RESULT_MODE ia16_get_raw_result_mode
 
-static machine_mode
+static fixed_size_mode
 ia16_get_raw_result_mode (int regno)
 {
   switch (regno)
@@ -1451,7 +1456,7 @@ ia16_get_raw_result_mode (int regno)
 #undef	TARGET_GET_RAW_ARG_MODE
 #define	TARGET_GET_RAW_ARG_MODE ia16_get_raw_arg_mode
 
-static machine_mode
+static fixed_size_mode
 ia16_get_raw_arg_mode (int regno)
 {
   switch (regno)
@@ -1464,7 +1469,7 @@ ia16_get_raw_arg_mode (int regno)
     case DH_REG:
     case CH_REG:
     case DS_REG:
-      return VOIDmode;
+      return as_a <fixed_size_mode> (VOIDmode);
     default:
       gcc_unreachable ();
     }
@@ -1514,8 +1519,8 @@ ia16_function_ok_for_sibcall (tree decl, tree exp ATTRIBUTE_UNUSED)
 #undef	TARGET_RETURN_POPS_ARGS
 #define	TARGET_RETURN_POPS_ARGS ia16_return_pops_args
 
-static int
-ia16_return_pops_args (tree fundecl ATTRIBUTE_UNUSED, tree funtype, int size)
+static poly_int64
+ia16_return_pops_args (tree fundecl ATTRIBUTE_UNUSED, tree funtype, poly_int64 size)
 {
   /* Note that the `-mrtd' or `-mregparmcall' calling convention will also be
      applied to libgcc library functions (e.g. __udivdi3).  This usually
@@ -2424,7 +2429,7 @@ ia16_as_legitimize_address (rtx x, rtx oldx,
 
   if (as == ADDR_SPACE_GENERIC
       || as == ADDR_SPACE_SEG_SS
-      || ia16_as_legitimate_address_p (mode, x, false, as))
+      || ia16_as_legitimate_address_p (mode, x, false, as, ERROR_MARK))
     return x;
 
   /* We must be able to transform an expression like
@@ -2470,7 +2475,7 @@ ia16_as_legitimize_address (rtx x, rtx oldx,
 					     ia16_seg16_reloc (oldx)));
 
   newx = gen_rtx_PLUS (HImode, off, ovr);
-  if (ia16_as_legitimate_address_p (mode, newx, false, as))
+  if (ia16_as_legitimate_address_p (mode, newx, false, as, ERROR_MARK))
     return newx;
 
   return gen_rtx_PLUS (HImode, force_reg (HImode, off), ovr);
@@ -3521,7 +3526,7 @@ int ia16_features = 0;
 static unsigned
 ia16_mode_hwords (machine_mode mode)
 {
-  return (GET_MODE_SIZE (mode).to_constant () + 1) / 2;
+  return (GET_MODE_SIZE (mode) + 1) / 2;
 }
 
 /* Estimate the cost of a branch instruction.  */
@@ -3896,7 +3901,7 @@ ia16_rtx_costs (rtx x, machine_mode mode, int outer_code_i,
       else
 	*total = MAX (ia16_costs->shift_start[I_REG]
 		      + ia16_costs->shift_bit
-			* (GET_MODE_BITSIZE (GET_MODE (XEXP (x, 1))).to_constant () / 2),
+			* (GET_MODE_BITSIZE (GET_MODE (XEXP (x, 1))) / 2),
 		      ia16_size_costs.shift_start[I_REG]
 			* ia16_costs->byte_fetch);
 
@@ -4011,7 +4016,7 @@ ia16_rtx_costs (rtx x, machine_mode mode, int outer_code_i,
 	  && rtx_equal_p (XEXP (x, 0), XEXP (x, 1)))
 	{
 	  *total = 1 + IA16_COST (add[I_RTX (x)])
-		   * (mode == QImode ? 1 : GET_MODE_SIZE (mode).to_constant () / UNITS_PER_WORD);
+		   * (mode == QImode ? 1 : GET_MODE_SIZE (mode) / UNITS_PER_WORD);
 	  return (false);
 	}
       /* Compute cost of "leaw" instruction.  */
@@ -4070,10 +4075,10 @@ ia16_rtx_costs (rtx x, machine_mode mode, int outer_code_i,
     case XOR:
       if (CONSTANT_P (XEXP (x, 1)))
 	*total = IA16_COST (add_imm[I_RTX (XEXP (x, 0))])
-	       * (mode == QImode ? 1 : GET_MODE_SIZE (mode).to_constant () / UNITS_PER_WORD);
+	       * (mode == QImode ? 1 : GET_MODE_SIZE (mode) / UNITS_PER_WORD);
       else
 	*total = IA16_COST (add[I_RTX (XEXP (x, 0))])
-	       * (mode == QImode ? 1 : GET_MODE_SIZE (mode).to_constant () / UNITS_PER_WORD);
+	       * (mode == QImode ? 1 : GET_MODE_SIZE (mode) / UNITS_PER_WORD);
       return false;
 
     case NEG:
@@ -4091,7 +4096,7 @@ ia16_rtx_costs (rtx x, machine_mode mode, int outer_code_i,
 
     case NOT:
       *total = IA16_COST (add[I_RTX (XEXP (x, 0))])
-	     * (mode == QImode ? 1 : GET_MODE_SIZE (mode).to_constant () / UNITS_PER_WORD);
+	     * (mode == QImode ? 1 : GET_MODE_SIZE (mode) / UNITS_PER_WORD);
       return false;
 
     case COMPARE:
@@ -5483,7 +5488,7 @@ extern void ia16_set_current_function (tree);
 static unsigned int
 ia16_hard_regno_nregs (unsigned int regno, machine_mode mode)
 {
-  return MAX (ia16_hard_regno_nregs_table[GET_MODE_SIZE(mode).to_constant()][regno], 1);
+  return MAX (ia16_hard_regno_nregs_table[GET_MODE_SIZE(mode)][regno], 1);
 }
 
 #undef TARGET_HARD_REGNO_NREGS
@@ -5497,7 +5502,7 @@ ia16_hard_regno_mode_ok (unsigned int regno, machine_mode mode)
           known_gt (GET_MODE_SIZE(mode), 16) ? 0 :
           (COMPLEX_MODE_P(mode) &&
             ((regno) < FIRST_NOQI_REG && known_gt ((regno) + GET_MODE_SIZE(mode), FIRST_NOQI_REG))) ? 0 :
-          ia16_hard_regno_nregs_table[GET_MODE_SIZE(mode).to_constant()][regno] &&
+          ia16_hard_regno_nregs_table[GET_MODE_SIZE(mode)][regno] &&
             (! TARGET_PROTECTED_MODE || (mode) == PHImode
              || ((regno) != DS_REG && (regno) != ES_REG)));
 }
@@ -5536,8 +5541,8 @@ ia16_class_max_nregs (reg_class_t rclass, machine_mode mode)
           (rclass) == SEGMENT_REGS ? 1 :
           (rclass) == ES_REGS ? 1 :
           (rclass) == DS_REGS ? 1 :
-          (rclass) == HI_REGS ? MAX (ia16_hard_regno_nregs_table[GET_MODE_SIZE(mode).to_constant()][0], 1) :
-          MAX (ia16_hard_regno_nregs_table[GET_MODE_SIZE(mode).to_constant()][0], 1));
+          (rclass) == HI_REGS ? MAX (ia16_hard_regno_nregs_table[GET_MODE_SIZE(mode)][0], 1) :
+          MAX (ia16_hard_regno_nregs_table[GET_MODE_SIZE(mode)][0], 1));
 }
 
 #undef TARGET_CLASS_MAX_NREGS
@@ -5849,7 +5854,7 @@ ia16_expand_prologue (void)
 {
   rtx insn;
   unsigned int i;
-  HOST_WIDE_INT size = get_frame_size ().to_constant ();
+  HOST_WIDE_INT size = get_frame_size ();
 
   /* Save used registers which are not call clobbered. */
   if (ia16_save_reg_p (CC_REG) && ! ia16_in_interrupt_function_p ())
@@ -5904,7 +5909,7 @@ void
 ia16_expand_epilogue (bool sibcall)
 {
   unsigned int i;
-  HOST_WIDE_INT size = get_frame_size ().to_constant ();
+  HOST_WIDE_INT size = get_frame_size ();
 
   if (ia16_save_reg_p (BP_REG))
     {
