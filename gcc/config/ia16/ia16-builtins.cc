@@ -279,8 +279,8 @@ ia16_fallback_far_cast (tree op)
 }
 
 tree
-ia16_resolve_overloaded_builtin (unsigned loc ATTRIBUTE_UNUSED,
-				 tree fndecl, void *arglist)
+ia16_resolve_overloaded_builtin (location_t loc ATTRIBUTE_UNUSED,
+				 tree fndecl, void *arglist, bool ATTRIBUTE_UNUSED)
 {
   if (!fndecl_built_in_p (fndecl, BUILT_IN_MD))
     return NULL_TREE;

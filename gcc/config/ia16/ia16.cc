@@ -35,9 +35,11 @@
 #include "cfgloop.h"
 #include "df.h"
 #include "tm_p.h"
+#include "memmodel.h"
 #include "expmed.h"
 #include "optabs.h"
 #include "regs.h"
+#include "hard-reg-set.h"
 #include "emit-rtl.h"
 #include "diagnostic.h"
 #include "fold-const.h"
@@ -59,7 +61,6 @@
 #include "attribs.h"
 #include "varasm.h"
 #include "recog.h"
-#include "memmodel.h"
 #include "tm-preds.h"
 
 /* This file should be included last.  */
@@ -1060,10 +1061,12 @@ ia16_handle_unnamed_function_arg (const_tree type)
 #define TARGET_FUNCTION_ARG ia16_function_arg
 
 static rtx
-ia16_function_arg (cumulative_args_t cum_v, machine_mode mode,
-		   const_tree type, bool named)
+ia16_function_arg (cumulative_args_t cum_v, const function_arg_info &arg)
 {
   CUMULATIVE_ARGS *cum;
+  machine_mode mode = arg.mode;
+  const_tree type = arg.type;
+  bool named = arg.named;
 
   if (! named)
     {
@@ -1285,13 +1288,12 @@ ia16_init_cumulative_args (CUMULATIVE_ARGS *cum, const_tree fntype,
 #define TARGET_FUNCTION_ARG_ADVANCE ia16_function_arg_advance
 
 static void
-ia16_function_arg_advance (cumulative_args_t cum_v, machine_mode mode,
-                           const_tree type ATTRIBUTE_UNUSED,
-			   bool named ATTRIBUTE_UNUSED)
+ia16_function_arg_advance (cumulative_args_t cum_v, const function_arg_info &arg)
 {
   CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
+  machine_mode mode = arg.mode;
 
-  if (cum->hwords >= 3 || ! named)
+  if (cum->hwords >= 3 || ! arg.named)
     {
       cum->hwords = 4;
       return;
@@ -1837,34 +1839,34 @@ ia16_handle_autofloat_stdio_v2_attribute (tree *node, tree name,
 
 static const struct attribute_spec ia16_gnu_attributes[] =
 {
-  { "stdcall", 0, 0, false, true, true, ia16_handle_cconv_attribute, true },
-  { "cdecl",   0, 0, false, true, true, ia16_handle_cconv_attribute, true },
+  { "stdcall", 0, 0, false, true, true, true, ia16_handle_cconv_attribute, NULL },
+  { "cdecl",   0, 0, false, true, true, true, ia16_handle_cconv_attribute, NULL },
   { "regparmcall",
-	       0, 0, false, true, true, ia16_handle_cconv_attribute, true },
-  { "pascal",  0, 0, false, true, true, ia16_handle_cconv_attribute, true },
+	       0, 0, false, true, true, true, ia16_handle_cconv_attribute, NULL },
+  { "pascal",  0, 0, false, true, true, true, ia16_handle_cconv_attribute, NULL },
   { "assume_ds_data",
-	       0, 0, false, true, true, ia16_handle_cconv_attribute, true },
+	       0, 0, false, true, true, true, ia16_handle_cconv_attribute, NULL },
   { "no_assume_ds_data",
-	       0, 0, false, true, true, ia16_handle_cconv_attribute, true },
+	       0, 0, false, true, true, true, ia16_handle_cconv_attribute, NULL },
   { "assume_ss_data",
-	       0, 0, false, true, true, ia16_handle_cconv_attribute, true },
+	       0, 0, false, true, true, true, ia16_handle_cconv_attribute, NULL },
   { "no_assume_ss_data",
-	       0, 0, false, true, true, ia16_handle_cconv_attribute, true },
-  { "save_ds", 0, 0, false, true, true, ia16_handle_cconv_attribute, true },
+	       0, 0, false, true, true, true, ia16_handle_cconv_attribute, NULL },
+  { "save_ds", 0, 0, false, true, true, true, ia16_handle_cconv_attribute, NULL },
   { "no_save_ds",
-	       0, 0, false, true, true, ia16_handle_cconv_attribute, true },
-  { "save_es", 0, 0, false, true, true, ia16_handle_cconv_attribute, true },
+	       0, 0, false, true, true, true, ia16_handle_cconv_attribute, NULL },
+  { "save_es", 0, 0, false, true, true, true, ia16_handle_cconv_attribute, NULL },
   { "save_all",
-	       0, 0, false, true, true, ia16_handle_cconv_attribute, true },
+	       0, 0, false, true, true, true, ia16_handle_cconv_attribute, NULL },
   { "near_section",
-	       0, 0, false, true, true, ia16_handle_cconv_attribute, true },
+	       0, 0, false, true, true, true, ia16_handle_cconv_attribute, NULL },
   { "far_section",
-	       0, 0, false, true, true, ia16_handle_cconv_attribute, true },
+	       0, 0, false, true, true, true, ia16_handle_cconv_attribute, NULL },
   { "interrupt",
-	       0, 0, false, true, true, ia16_handle_cconv_attribute, true },
+	       0, 0, false, true, true, true, ia16_handle_cconv_attribute, NULL },
   { "autofloat_stdio_v2",
-	       0, 0, true, false, false,
-			   ia16_handle_autofloat_stdio_v2_attribute, false }
+	       0, 0, true, false, false, false,
+			   ia16_handle_autofloat_stdio_v2_attribute, NULL }
 };
 
 static const struct scoped_attribute_specs ia16_attribute_table =
@@ -1966,7 +1968,7 @@ ia16_function_attribute_inlinable_p (const_tree fndecl)
 #undef  TARGET_ADDR_SPACE_ADDRESS_MODE
 #define TARGET_ADDR_SPACE_ADDRESS_MODE ia16_as_address_mode
 
-static machine_mode
+static scalar_int_mode
 ia16_as_address_mode (addr_space_t addrspace)
 {
   switch (addrspace)
@@ -1987,7 +1989,7 @@ ia16_as_address_mode (addr_space_t addrspace)
 #undef  TARGET_ADDR_SPACE_POINTER_MODE
 #define TARGET_ADDR_SPACE_POINTER_MODE ia16_as_pointer_mode
 
-static machine_mode
+static scalar_int_mode
 ia16_as_pointer_mode (addr_space_t addrspace)
 {
   switch (addrspace)
@@ -2006,7 +2008,7 @@ ia16_as_pointer_mode (addr_space_t addrspace)
 #define TARGET_ADDR_SPACE_VALID_POINTER_MODE ia16_as_valid_pointer_mode
 
 static bool
-ia16_as_valid_pointer_mode (machine_mode m, addr_space_t addrspace)
+ia16_as_valid_pointer_mode (scalar_int_mode m, addr_space_t addrspace)
 {
   switch (addrspace)
     {
@@ -2046,7 +2048,8 @@ ia16_have_seg_override_p (rtx x)
 
 static bool
 ia16_as_legitimate_address_p (machine_mode mode ATTRIBUTE_UNUSED, rtx x,
-			      bool strict, addr_space_t as)
+			      bool strict, addr_space_t as,
+			      code_helper ATTRIBUTE_UNUSED)
 {
   rtx r1, r2, r9;
   if (as == ADDR_SPACE_FAR && !ia16_have_seg_override_p (x))
@@ -3518,7 +3521,7 @@ int ia16_features = 0;
 static unsigned
 ia16_mode_hwords (machine_mode mode)
 {
-  return (GET_MODE_SIZE (mode) + 1) / 2;
+  return (GET_MODE_SIZE (mode).to_constant () + 1) / 2;
 }
 
 /* Estimate the cost of a branch instruction.  */
@@ -5403,8 +5406,11 @@ ia16_shift_truncation_mask (machine_mode mode)
 
 static rtx_insn *
 ia16_md_asm_adjust (vec<rtx> &outputs, vec<rtx> &/*inputs*/,
+		    vec<machine_mode> &/*input_modes*/,
 		    vec<const char *> &constraints, vec<rtx> &clobbers,
-		    HARD_REG_SET &clobbered_regs)
+		    vec<rtx> &/*labels*/,
+		    HARD_REG_SET &clobbered_regs,
+		    location_t /*loc*/)
 {
   bool saw_asm_flag = false;
 
@@ -5456,8 +5462,8 @@ extern rtx ia16_expand_builtin (tree expr, rtx target, rtx subtarget,
 #define	TARGET_RESOLVE_OVERLOADED_BUILTIN ia16_resolve_overloaded_builtin
 
 /* In ia16-builtins.c .  */
-extern tree ia16_resolve_overloaded_builtin (unsigned loc, tree fndecl,
-					     void *arglist);
+extern tree ia16_resolve_overloaded_builtin (location_t loc, tree fndecl,
+					     void *arglist, bool);
 
 #undef	TARGET_FOLD_BUILTIN
 #define	TARGET_FOLD_BUILTIN	ia16_fold_builtin
