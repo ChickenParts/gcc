@@ -1550,7 +1550,7 @@ ia16_strict_argument_naming (cumulative_args_t cum_v ATTRIBUTE_UNUSED)
 
 /* Defining target-specific uses of __attribute__ */
 #undef	TARGET_ATTRIBUTE_TABLE
-#define	TARGET_ATTRIBUTE_TABLE ia16_attribute_table
+#define	TARGET_ATTRIBUTE_TABLE ia16_attribute_tables
 
 static tree
 ia16_handle_cconv_attribute (tree *node, tree name, tree args ATTRIBUTE_UNUSED,
@@ -1835,7 +1835,7 @@ ia16_handle_autofloat_stdio_v2_attribute (tree *node, tree name,
   return NULL_TREE;
 }
 
-static const struct attribute_spec ia16_attribute_table[] =
+static const struct attribute_spec ia16_gnu_attributes[] =
 {
   { "stdcall", 0, 0, false, true, true, ia16_handle_cconv_attribute, true },
   { "cdecl",   0, 0, false, true, true, ia16_handle_cconv_attribute, true },
@@ -1864,8 +1864,17 @@ static const struct attribute_spec ia16_attribute_table[] =
 	       0, 0, false, true, true, ia16_handle_cconv_attribute, true },
   { "autofloat_stdio_v2",
 	       0, 0, true, false, false,
-			   ia16_handle_autofloat_stdio_v2_attribute, false },
-  { NULL,      0, 0, false, false, false, NULL,			     false }
+			   ia16_handle_autofloat_stdio_v2_attribute, false }
+};
+
+static const struct scoped_attribute_specs ia16_attribute_table =
+{
+  "gnu", { ia16_gnu_attributes }
+};
+
+static const scoped_attribute_specs *const ia16_attribute_tables[] =
+{
+  &ia16_attribute_table
 };
 
 #undef	TARGET_COMP_TYPE_ATTRIBUTES
@@ -3884,7 +3893,7 @@ ia16_rtx_costs (rtx x, machine_mode mode, int outer_code_i,
       else
 	*total = MAX (ia16_costs->shift_start[I_REG]
 		      + ia16_costs->shift_bit
-			* GET_MODE_BITSIZE (GET_MODE (XEXP (x, 1))) / 2,
+			* (GET_MODE_BITSIZE (GET_MODE (XEXP (x, 1))).to_constant () / 2),
 		      ia16_size_costs.shift_start[I_REG]
 			* ia16_costs->byte_fetch);
 
@@ -3930,8 +3939,8 @@ ia16_rtx_costs (rtx x, machine_mode mode, int outer_code_i,
 
 	  /* Compute costs correctly for widening multiplication.  */
 	  if ((GET_CODE (op0) == SIGN_EXTEND || GET_CODE (op1) == ZERO_EXTEND)
-	      && GET_MODE_SIZE (GET_MODE (XEXP (op0, 0))) * 2
-	         == GET_MODE_SIZE (mode))
+	      && known_eq (GET_MODE_SIZE (GET_MODE (XEXP (op0, 0))) * 2,
+			   GET_MODE_SIZE (mode)))
 	    {
 	      int is_mulwiden = 0;
 	      machine_mode inner_mode = GET_MODE (op0);
@@ -3999,7 +4008,7 @@ ia16_rtx_costs (rtx x, machine_mode mode, int outer_code_i,
 	  && rtx_equal_p (XEXP (x, 0), XEXP (x, 1)))
 	{
 	  *total = 1 + IA16_COST (add[I_RTX (x)])
-		   * (mode == QImode ? 1 : GET_MODE_SIZE (mode) / UNITS_PER_WORD);
+		   * (mode == QImode ? 1 : GET_MODE_SIZE (mode).to_constant () / UNITS_PER_WORD);
 	  return (false);
 	}
       /* Compute cost of "leaw" instruction.  */
@@ -4058,10 +4067,10 @@ ia16_rtx_costs (rtx x, machine_mode mode, int outer_code_i,
     case XOR:
       if (CONSTANT_P (XEXP (x, 1)))
 	*total = IA16_COST (add_imm[I_RTX (XEXP (x, 0))])
-	       * (mode == QImode ? 1 : GET_MODE_SIZE (mode) / UNITS_PER_WORD);
+	       * (mode == QImode ? 1 : GET_MODE_SIZE (mode).to_constant () / UNITS_PER_WORD);
       else
 	*total = IA16_COST (add[I_RTX (XEXP (x, 0))])
-	       * (mode == QImode ? 1 : GET_MODE_SIZE (mode) / UNITS_PER_WORD);
+	       * (mode == QImode ? 1 : GET_MODE_SIZE (mode).to_constant () / UNITS_PER_WORD);
       return false;
 
     case NEG:
@@ -4079,7 +4088,7 @@ ia16_rtx_costs (rtx x, machine_mode mode, int outer_code_i,
 
     case NOT:
       *total = IA16_COST (add[I_RTX (XEXP (x, 0))])
-	     * (mode == QImode ? 1 : GET_MODE_SIZE (mode) / UNITS_PER_WORD);
+	     * (mode == QImode ? 1 : GET_MODE_SIZE (mode).to_constant () / UNITS_PER_WORD);
       return false;
 
     case COMPARE:
@@ -5834,7 +5843,7 @@ ia16_expand_prologue (void)
 {
   rtx insn;
   unsigned int i;
-  HOST_WIDE_INT size = get_frame_size ();
+  HOST_WIDE_INT size = get_frame_size ().to_constant ();
 
   /* Save used registers which are not call clobbered. */
   if (ia16_save_reg_p (CC_REG) && ! ia16_in_interrupt_function_p ())
@@ -5880,8 +5889,8 @@ ia16_expand_prologue (void)
 	= size + ia16_initial_arg_pointer_offset ();
 
       if (cfun->decl && ia16_function_args_grow_downward (TREE_TYPE (cfun->decl))
-	  && crtl->args.size != -1)
-	current_function_static_stack_size -= crtl->args.size;
+	  && maybe_ne (crtl->args.size, -1))
+	current_function_static_stack_size -= crtl->args.size.to_constant ();
     }
 }
 
@@ -5889,7 +5898,7 @@ void
 ia16_expand_epilogue (bool sibcall)
 {
   unsigned int i;
-  HOST_WIDE_INT size = get_frame_size ();
+  HOST_WIDE_INT size = get_frame_size ().to_constant ();
 
   if (ia16_save_reg_p (BP_REG))
     {
