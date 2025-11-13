@@ -965,7 +965,9 @@ ia16_can_eliminate (const int from, const int to)
   if (STACK_POINTER_REGNUM == from)
     return false;
 
-  gcc_unreachable ();
+  /* Modern GCC may query other elimination pairs not explicitly listed
+     in ELIMINABLE_REGS. Return false for any other combination. */
+  return false;
 }
 
 /* Calculates the difference between the argument pointer and the frame
@@ -4494,6 +4496,11 @@ ia16_option_override (void)
      retaining all null pointer checks. */
   if (! global_options_set.x_flag_delete_null_pointer_checks)
     global_options.x_flag_delete_null_pointer_checks = 0;
+
+  /* Disable DWARF debug info as it's not fully implemented for ia16.
+     Modern GCC expects certain DWARF hooks that ia16 doesn't provide. */
+  if (! global_options_set.x_debug_info_level)
+    global_options.x_debug_info_level = DINFO_LEVEL_NONE;
 }
 
 /* The Overall Framework of an Assembler File */
